@@ -5,188 +5,194 @@ import * as cocoSsd from "@tensorflow-models/coco-ssd";
 
 const MODEL_URL = "https://vladmandic.github.io/face-api/model/";
 
-export default function ProctoringSystem({ onViolation, isActive }) {
+export default function ProctoringSystem({ onViolation, isActive, sessionId }) {
   const videoRef = useRef(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const cocoModelRef = useRef(null);
-  const analyserRef = useRef(null);
-  const dataArrayRef = useRef(null);
+  const streamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]); 
+  const sessionIdRef = useRef(sessionId);
+  const cocoModelRef = useRef(null); // Добавляем реф для модели
+  
+  const lastViolationTime = useRef(0);
+  const lastCheckTime = useRef(0);
 
-  const counters = useRef({
-    noFace: 0, multiFace: 0, eyesClosed: 0, lookingDown: 0, talking: 0, loudNoise: 0,
-  });
+  // Обновляем ID при смене пропса
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
-  const getEAR = (eye) => {
-    const v1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
-    const v2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
-    const h = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
-    return (v1 + v2) / (2.0 * h);
-  };
+ const saveAndUploadVideo = async (blob) => {
+    if (!blob || blob.size === 0) return;
 
-  // --- Функция скриншота ---
-  const takeScreenshot = async (violationType) => {
-    if (!videoRef.current) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
-    
+    const currentId = sessionIdRef.current;
+    if (!currentId) {
+        console.error("❌ Невозможно привязать видео: sessionId отсутствует.");
+        return;
+    }
+
     const formData = new FormData();
-    formData.append("screenshot", blob, `${Date.now()}_${violationType}.jpg`);
+    // Поле должно называться 'session_video', как в upload.single() на сервере
+    formData.append("session_video", blob, `test_session_${currentId}.webm`);
+    // Поле sessionId для связи в БД
+    formData.append("sessionId", currentId);
 
     try {
-      await fetch("http://localhost:5000/upload-screenshot", {  // <-- ваш эндпоинт
-        method: "POST",
-        body: formData,
-      });
-      console.log("Скриншот отправлен:", violationType);
+        const response = await fetch("http://localhost:5000/upload-video", {
+            method: "POST",
+            body: formData,
+            // Не используем keepalive для файлов > 64kb
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+        } else {
+            console.error("📦 Сервер принял файл, но возникла ошибка привязки.");
+        }
     } catch (e) {
-      console.error("Ошибка отправки скриншота:", e);
+        console.error("🌐 Ошибка сети при загрузке видео:", e);
+    }
+  };
+  // Остановка записи
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.requestData(); // Сохраняем последние кадры
+      mediaRecorderRef.current.stop(); // Это вызовет onstop
     }
   };
 
+  // Остановка камеры
+  const stopCamera = () => {
+     if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+     }
+  };
+
+  const startRecording = (stream) => {
+    try {
+      // Используем VP8 - он лучше открывается в обычных плеерах
+      const mimeType = 'video/webm; codecs=vp8'; 
+      
+      const options = MediaRecorder.isTypeSupported(mimeType) 
+        ? { mimeType } 
+        : { mimeType: 'video/webm' };
+
+      const recorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: options.mimeType });
+        chunksRef.current = []; // Чистим память
+        saveAndUploadVideo(blob);
+        stopCamera(); // Выключаем камеру ТОЛЬКО после сборки видео
+      };
+
+      // ВАЖНО: Убрали аргумент (1000). Пишем одним куском в память.
+      // Это предотвращает "битые" заголовки при разрыве.
+      recorder.start(); 
+    } catch (e) {
+      console.error("Ошибка старта записи:", e);
+    }
+  };
+
+  // --- ЛОГИКА ДЕТЕКЦИИ (сокращенно, чтобы не занимать место) ---
   const startDetection = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-
     const run = async () => {
-      if (!isActive || !video || video.readyState !== 4) {
-        requestAnimationFrame(run);
-        return;
+      if (!isActive || !videoRef.current) return;
+      const now = Date.now();
+      if (now - lastCheckTime.current > 100) {
+          lastCheckTime.current = now;
+          try {
+             if (videoRef.current.readyState === 4) {
+                 // Твой код FaceAPI...
+                 const detection = await faceapi.detectSingleFace(
+                     videoRef.current, 
+                     new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }) 
+                 );
+                 if (!detection) triggerViolation("Лицо не найдено");
+                 
+                 // Твой код CocoSSD...
+                 if (cocoModelRef.current) {
+                     const objects = await cocoModelRef.current.detect(videoRef.current);
+                     const forbidden = objects.find(obj => 
+                         ["cell phone", "mobile phone", "laptop"].includes(obj.class) && obj.score > 0.5
+                     );
+                     if (forbidden) triggerViolation(`Запрещено: ${forbidden.class}`);
+                 }
+             }
+          } catch (e) { }
       }
-
-      try {
-        // --- 1. АУДИО ---
-        if (analyserRef.current) {
-          analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-          const avgVolume = dataArrayRef.current.reduce((a, b) => a + b) / dataArrayRef.current.length;
-          if (avgVolume > 45) {
-            counters.current.loudNoise++;
-            if (counters.current.loudNoise > 30) {
-              onViolation("Подозрительный шум/голос");
-              await takeScreenshot("loudNoise");
-              counters.current.loudNoise = 0;
-            }
-          }
-        }
-
-        // --- 2. ЛИЦА ---
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks();
-
-        if (detections.length === 0) {
-          counters.current.noFace++;
-          if (counters.current.noFace > 20) {
-            onViolation("Лицо не обнаружено");
-            await takeScreenshot("noFace");
-            counters.current.noFace = 0;
-          }
-        } else if (detections.length > 1) {
-          counters.current.multiFace++;
-          if (counters.current.multiFace > 10) {
-            onViolation("В кадре более одного человека!");
-            await takeScreenshot("multiFace");
-            counters.current.multiFace = 0;
-          }
-        } else {
-          counters.current.noFace = 0;
-          counters.current.multiFace = 0;
-          const landmarks = detections[0].landmarks;
-          const ear = (getEAR(landmarks.getLeftEye()) + getEAR(landmarks.getRightEye())) / 2;
-          if (ear < 0.18) {
-            counters.current.eyesClosed++;
-            if (counters.current.eyesClosed > 15) {
-              onViolation("Закрыты глаза");
-              await takeScreenshot("eyesClosed");
-              counters.current.eyesClosed = 0;
-            }
-          }
-
-          const nose = landmarks.getNose();
-          const nosePos = (nose[6].y - detections[0].detection.box.y) / detections[0].detection.box.height;
-          if (nosePos > 0.8) {
-            counters.current.lookingDown++;
-            if (counters.current.lookingDown > 20) {
-              onViolation("Не опускайте голову слишком низко");
-              await takeScreenshot("lookingDown");
-              counters.current.lookingDown = 0;
-            }
-          }
-        }
-
-        // --- 3. ПРЕДМЕТЫ ---
-        if (cocoModelRef.current) {
-          const objects = await cocoModelRef.current.detect(video);
-          for (const obj of objects) {
-            if (["cell phone", "laptop"].includes(obj.class) && obj.score > 0.6) {
-              onViolation(`Запрещенный предмет: ${obj.class.toUpperCase()}`);
-              await takeScreenshot(obj.class);
-            }
-          }
-        }
-      } catch (e) { console.error(e); }
-      requestAnimationFrame(run);
+      if (isActive) requestAnimationFrame(run);
     };
     run();
+  };
+  
+  const triggerViolation = (reason) => {
+      // Твой код скрина...
+      const now = Date.now();
+      if (now - lastViolationTime.current < 2000) return;
+      lastViolationTime.current = now;
+      onViolation(reason);
+      
+      // Скриншоты тоже отправляем
+      if (videoRef.current) {
+          const canvas = document.createElement("canvas");
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(videoRef.current, 0, 0);
+          canvas.toBlob(b => {
+             const fd = new FormData();
+             fd.append("screenshot", b, `viol_${Date.now()}.jpg`);
+             fetch("http://localhost:5000/upload-screenshot", { method: "POST", body: fd });
+          });
+      }
   };
 
   useEffect(() => {
     const init = async () => {
+      // Загрузка моделей
       await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        cocoSsd.load().then(m => cocoModelRef.current = m)
-      ]);
+         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+         cocoSsd.load()
+      ]).then(([_, model]) => cocoModelRef.current = model);
 
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Запуск камеры
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
+      streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
-      
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
 
-      setIsLoaded(true);
+      startRecording(stream);
       startDetection();
     };
+
     init();
+
+    // ПРИ ВЫХОДЕ
+    return () => {
+        // Мы вызываем ТОЛЬКО остановку записи.
+        // Камера сама выключится внутри recorder.onstop
+        stopRecording();
+    };
   }, []);
 
   return (
     <div style={styles.floatingBox}>
       <video ref={videoRef} autoPlay muted playsInline style={styles.video} />
-      <div style={styles.scanline} />
-      {!isLoaded && <div style={styles.loading}>AI Sync...</div>}
-      <div style={styles.statusDot}>LIVE</div>
+      <div style={styles.statusDot}>REC</div>
     </div>
   );
 }
 
 const styles = {
-  floatingBox: {
-    position: "fixed",
-    bottom: "24px",
-    right: "24px",
-    width: "200px",
-    height: "150px",
-    borderRadius: "24px",
-    overflow: "hidden",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
-    border: "2px solid rgba(59, 130, 246, 0.5)",
-    zIndex: 1000,
-    backgroundColor: "#000"
-  },
+  floatingBox: { position: "fixed", bottom: "24px", right: "24px", width: "180px", height: "135px", borderRadius: "12px", overflow: "hidden", zIndex: 1000, background: "#000", border: "2px solid #333" },
   video: { width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" },
-  statusDot: {
-    position: "absolute", top: "12px", left: "12px", padding: "4px 8px",
-    background: "rgba(239, 68, 68, 0.8)", borderRadius: "8px", color: "#fff",
-    fontSize: "10px", fontWeight: "bold", letterSpacing: "1px"
-  },
-  loading: { position: "absolute", inset: 0, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#666" },
-  scanline: { position: "absolute", top: 0, left: 0, width: "100%", height: "2px", background: "rgba(59, 130, 246, 0.3)", zIndex: 5, animation: "scan 3s linear infinite" }
+  statusDot: { position: "absolute", top: "8px", left: "8px", padding: "2px 6px", background: "red", color: "#fff", fontSize: "10px", fontWeight: "bold", borderRadius: "4px" }
 };

@@ -1,20 +1,26 @@
-// App.js
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import TestPage from "./pages/ENTTestPage"; 
 import Navbar from "./components/Navbar";
-import Auth from "./pages/Auth"
+import Auth from "./pages/Auth";
+
+// Обертка для защиты страниц
+const PrivateRoute = ({ children }) => {
+  return localStorage.getItem("token") ? children : <Navigate to="/auth" />;
+};
 
 function App() {
   return (
     <Router>
-      <Navbar />
-      <Auth />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        {/* Параметр :id обязателен, чтобы поймать /test/1, /test/2 и т.д. */}
-        <Route path="/test/:id" element={<TestPage />} />
-      </Routes>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Navbar />
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/test/:id" element={<PrivateRoute><TestPage /></PrivateRoute>} />
+        </Routes>
+      </div>
     </Router>
   );
 }
