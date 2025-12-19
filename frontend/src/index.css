@@ -16,10 +16,25 @@ body {
   color: white;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
-
+html {
+          scroll-behavior: smooth;
+        }
 #root {
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0f0c29; 
+}
+::-webkit-scrollbar-thumb {
+  background: #6366f1; 
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6; 
 }

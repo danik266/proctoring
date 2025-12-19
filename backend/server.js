@@ -1,101 +1,110 @@
-require('dotenv').config();
+  require('dotenv').config();
 
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const fetch = require('node-fetch'); // npm i node-fetch
+  const express = require('express');
+  const multer = require('multer');
+  const cors = require('cors');
+  const path = require('path');
+  const fs = require('fs');
+  const fetch = require('node-fetch'); // npm i node-fetch
 
 const authRoutes = require('./routes/auth'); 
-const pool = require('./db'); // твоя БД
+const adminRoutes = require('./routes/admin'); // <--- ДОБАВЬ ЭТО
+const pool = require('./db');
 
 const app = express();
 
-// --- МИДДЛВЕРЫ ---
 app.use(cors());
 app.use(express.json());
 
-// --- ПАПКИ ДЛЯ ФАЙЛОВ ---
-const SCREENSHOTS_DIR = path.join(__dirname, 'upload-screenshot');
-const VIDEOS_DIR = path.join(__dirname, 'upload-video');
-[SCREENSHOTS_DIR, VIDEOS_DIR].forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+app.use('/uploads', express.static(path.join(__dirname, 'upload-screenshot')));
+app.use('/api/admin', adminRoutes);
 
-// --- MULTER ---
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, file.fieldname === 'screenshot' ? SCREENSHOTS_DIR : VIDEOS_DIR);
-  },
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
-});
-const upload = multer({ storage });
+  // --- ПАПКИ ДЛЯ ФАЙЛОВ ---
+  const SCREENSHOTS_DIR = path.join(__dirname, 'upload-screenshot');
+  const VIDEOS_DIR = path.join(__dirname, 'upload-video');
+  [SCREENSHOTS_DIR, VIDEOS_DIR].forEach(dir => {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  });
 
-// --- AUTH ---
-app.use('/api/auth', authRoutes);
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+  // --- MULTER ---
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, file.fieldname === 'screenshot' ? SCREENSHOTS_DIR : VIDEOS_DIR);
+    },
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  });
+  const upload = multer({ storage });
 
-async function sendMessage(chatId, text) {
-  try {
-    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text })
-    });
-  } catch (err) {
-    console.error('Ошибка отправки Telegram-сообщения:', err);
+  // --- AUTH ---
+  app.use('/api/auth', authRoutes);
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+  async function sendMessage(chatId, text) {
+    try {
+      const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text })
+      });
+    } catch (err) {
+      console.error('Ошибка отправки Telegram-сообщения:', err);
+    }
   }
-}
 
-let offset = 0;
+  let offset = 0;
 
-async function pollUpdates() {
-  try {
-    const res = await fetch(`${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=10`);
-    const data = await res.json();
+  async function pollUpdates() {
+    try {
+      const res = await fetch(`${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=10`);
+      const data = await res.json();
 
-    if (data.ok && data.result.length > 0) {
-      for (const update of data.result) {
-        offset = update.update_id + 1; // чтобы не получать старые
-        if (update.message && update.message.text === '/start') {
-          const chatId = update.message.chat.id;
-          await sendMessage(chatId, `Ваш Telegram ID: ${chatId}`);
+      if (data.ok && data.result.length > 0) {
+        for (const update of data.result) {
+          offset = update.update_id + 1; // чтобы не получать старые
+          if (update.message && update.message.text === '/start') {
+            const chatId = update.message.chat.id;
+            await sendMessage(chatId, `Ваш Telegram ID: ${chatId}`);
+          }
         }
       }
+    } catch (err) {
+      console.error("Ошибка Telegram polling:", err);
+    } finally {
+      setTimeout(pollUpdates, 1000);
     }
-  } catch (err) {
-    console.error("Ошибка Telegram polling:", err);
-  } finally {
-    setTimeout(pollUpdates, 1000);
   }
-}
 
-// Инициализация offset, чтобы пропустить старые апдейты
-async function initTelegram() {
-  try {
-    const res = await fetch(`${TELEGRAM_API}/getUpdates`);
-    const data = await res.json();
-    if (data.ok && data.result.length > 0) {
-      offset = data.result[data.result.length - 1].update_id + 1;
+  // Инициализация offset, чтобы пропустить старые апдейты
+  async function initTelegram() {
+    try {
+      const res = await fetch(`${TELEGRAM_API}/getUpdates`);
+      const data = await res.json();
+      if (data.ok && data.result.length > 0) {
+        offset = data.result[data.result.length - 1].update_id + 1;
+      }
+    } catch (err) {
+      console.error("Ошибка инициализации Telegram:", err);
     }
-  } catch (err) {
-    console.error("Ошибка инициализации Telegram:", err);
+    pollUpdates();
   }
-  pollUpdates();
-}
 
-initTelegram();
-// --- DASHBOARD ---
+  initTelegram();
 app.get('/api/dashboard/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
     const userResult = await pool.query('SELECT full_name, role, school, class FROM users WHERE id = $1', [userId]);
     if (userResult.rows.length === 0) return res.status(404).json({ error: "Пользователь не найден" });
 
+    // 👇 ИСПРАВЛЕНИЕ: Добавил t.published в список полей
     const testsResult = await pool.query(`
-      SELECT t.id, t.name, t.subject, t.duration_minutes,
+      SELECT 
+        t.id, 
+        t.name, 
+        t.subject, 
+        t.type, 
+        t.duration_minutes, 
+        t.published,  -- <--- !!! ВОТ ЭТОГО НЕ ХВАТАЛО !!!
         (SELECT count(*) FROM questions q WHERE q.test_id = t.id) as q_count,
         s.start_time, s.end_time, s.score
       FROM tests t
@@ -108,21 +117,23 @@ app.get('/api/dashboard/:userId', async (req, res) => {
     res.status(500).json({ error: 'Ошибка базы данных' });
   }
 });
+  // --- Загрузка скриншотов ---
+  app.post('/upload-screenshot', upload.single('screenshot'), (req, res) => {
+    res.json({ status: 'ok', filename: req.file.filename });
+  });
 
-// --- Загрузка скриншотов ---
-app.post('/upload-screenshot', upload.single('screenshot'), (req, res) => {
-  res.json({ status: 'ok', filename: req.file.filename });
-});
-
-// --- Загрузка видео ---
-app.post('/upload-video', upload.single('session_video'), async (req, res) => {
+ app.post('/upload-video', upload.single('session_video'), async (req, res) => {
   const { sessionId } = req.body;
   if (!req.file) return res.status(400).json({ error: "Файл не получен" });
 
   const fileName = req.file.filename;
   try {
     if (sessionId) {
-      const result = await pool.query('UPDATE test_sessions SET recording_links = $1 WHERE id = $2', [fileName, sessionId]);
+      // Передаём массив, а не строку
+      const result = await pool.query(
+        'UPDATE test_sessions SET recording_links = $1 WHERE id = $2',
+        [[fileName], sessionId]  // <-- оборачиваем в массив
+      );
       if (result.rowCount === 0) return res.status(404).json({ error: "Сессия не найдена" });
       res.json({ status: 'ok', filename: fileName, sessionId });
     } else {
@@ -134,97 +145,100 @@ app.post('/upload-video', upload.single('session_video'), async (req, res) => {
   }
 });
 
-// --- START TEST ---
-app.post('/api/tests/start', async (req, res) => {
-  const { user_id, test_id } = req.body;
-  if (!user_id || !test_id) return res.status(400).json({ error: "user_id и test_id обязателен" });
+  // --- START TEST ---
+  app.post('/api/tests/start', async (req, res) => {
+    const { user_id, test_id } = req.body;
+    if (!user_id || !test_id) return res.status(400).json({ error: "user_id и test_id обязателен" });
 
-  try {
-    const existingSession = await pool.query(
-      'SELECT id FROM test_sessions WHERE user_id = $1 AND test_id = $2 AND end_time IS NULL',
-      [user_id, test_id]
-    );
-    if (existingSession.rows.length > 0) return res.json({ sessionId: existingSession.rows[0].id });
-
-    const newSession = await pool.query(
-      'INSERT INTO test_sessions (user_id, test_id, start_time) VALUES ($1, $2, NOW()) RETURNING id',
-      [user_id, test_id]
-    );
-    res.json({ sessionId: newSession.rows[0].id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Ошибка базы данных' });
-  }
-});
-
-// --- GET QUESTIONS ---
-app.get('/api/tests/:testId/questions', async (req, res) => {
-  const { testId } = req.params;
-  try {
-    const result = await pool.query('SELECT id, text, type, points, options FROM questions WHERE test_id = $1 ORDER BY id ASC', [testId]);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// --- SUBMIT TEST ---
-app.post('/api/tests/submit', async (req, res) => {
-  const { user_id, test_id, answers, session_id } = req.body;
-  if (!user_id || !test_id || !answers) return res.status(400).json({ error: "Недостаточно данных" });
-
-  try {
-    await pool.query('BEGIN');
-    const questionsDb = await pool.query('SELECT id, points, correct_answers FROM questions WHERE test_id = $1', [test_id]);
-    const questionsMap = new Map();
-    let maxTotalPoints = 0;
-    questionsDb.rows.forEach(q => { questionsMap.set(q.id, q); maxTotalPoints += q.points || 1; });
-
-    let currentScore = 0;
-    const resultDetails = {};
-
-    for (const ans of answers) {
-      const dbQ = questionsMap.get(ans.question_id);
-      let pointsAwarded = 0, isCorrect = false, correctAnswer = null;
-      if (dbQ) {
-        correctAnswer = dbQ.correct_answers;
-        if (String(ans.answer_text).trim() === String(correctAnswer).trim()) {
-          pointsAwarded = dbQ.points || 1;
-          currentScore += pointsAwarded;
-          isCorrect = true;
-        }
-        resultDetails[ans.question_id] = { correct_answer: correctAnswer, is_correct: isCorrect };
-      }
-      await pool.query(
-        'INSERT INTO answers (user_id, test_id, question_id, answer_text, answer_time, points_awarded, checked) VALUES ($1,$2,$3,$4,NOW(),$5,true)',
-        [user_id, test_id, ans.question_id, ans.answer_text, pointsAwarded]
+    try {
+      const existingSession = await pool.query(
+        'SELECT id FROM test_sessions WHERE user_id = $1 AND test_id = $2 AND end_time IS NULL',
+        [user_id, test_id]
       );
+      if (existingSession.rows.length > 0) return res.json({ sessionId: existingSession.rows[0].id });
+
+      const newSession = await pool.query(
+        'INSERT INTO test_sessions (user_id, test_id, start_time) VALUES ($1, $2, NOW()) RETURNING id',
+        [user_id, test_id]
+      );
+      res.json({ sessionId: newSession.rows[0].id });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Ошибка базы данных' });
     }
+  });
 
-    if (session_id) await pool.query('UPDATE test_sessions SET end_time = NOW(), score = $1 WHERE id = $2', [currentScore, session_id]);
-    await pool.query('COMMIT');
+  // --- GET QUESTIONS ---
+  app.get('/api/tests/:testId/questions', async (req, res) => {
+    const { testId } = req.params;
+    try {
+      const result = await pool.query('SELECT id, text, type, points, options FROM questions WHERE test_id = $1 ORDER BY id ASC', [testId]);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
-    res.json({ message: "Тест завершен", score: currentScore, total_points: maxTotalPoints, details: resultDetails });
-  } catch (err) {
-    await pool.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ error: "Ошибка сервера при сохранении" });
-  }
-});
+  // --- SUBMIT TEST ---
+  app.post('/api/tests/submit', async (req, res) => {
+    const { user_id, test_id, answers, session_id } = req.body;
+    if (!user_id || !test_id || !answers) return res.status(400).json({ error: "Недостаточно данных" });
 
-// --- AUDIT LOG ---
+    try {
+      await pool.query('BEGIN');
+      const questionsDb = await pool.query('SELECT id, points, correct_answers FROM questions WHERE test_id = $1', [test_id]);
+      const questionsMap = new Map();
+      let maxTotalPoints = 0;
+      questionsDb.rows.forEach(q => { questionsMap.set(q.id, q); maxTotalPoints += q.points || 1; });
+
+      let currentScore = 0;
+      const resultDetails = {};
+
+      for (const ans of answers) {
+        const dbQ = questionsMap.get(ans.question_id);
+        let pointsAwarded = 0, isCorrect = false, correctAnswer = null;
+        if (dbQ) {
+          correctAnswer = dbQ.correct_answers;
+          if (String(ans.answer_text).trim() === String(correctAnswer).trim()) {
+            pointsAwarded = dbQ.points || 1;
+            currentScore += pointsAwarded;
+            isCorrect = true;
+          }
+          resultDetails[ans.question_id] = { correct_answer: correctAnswer, is_correct: isCorrect };
+        }
+        await pool.query(
+          'INSERT INTO answers (user_id, test_id, question_id, answer_text, answer_time, points_awarded, checked) VALUES ($1,$2,$3,$4,NOW(),$5,true)',
+          [user_id, test_id, ans.question_id, ans.answer_text, pointsAwarded]
+        );
+      }
+
+      if (session_id) await pool.query('UPDATE test_sessions SET end_time = NOW(), score = $1 WHERE id = $2', [currentScore, session_id]);
+      await pool.query('COMMIT');
+
+      res.json({ message: "Тест завершен", score: currentScore, total_points: maxTotalPoints, details: resultDetails });
+    } catch (err) {
+      await pool.query('ROLLBACK');
+      console.error(err);
+      res.status(500).json({ error: "Ошибка сервера при сохранении" });
+    }
+  });
+app.use('/uploads', express.static(path.join(__dirname, 'upload-screenshot')));
+app.use('/videos', express.static(path.join(__dirname, 'upload-video')));
 app.post('/api/audit/log', async (req, res) => {
-  const { event, user_id, event_time, data } = req.body;
-  try {
-    await pool.query('INSERT INTO audit_logs (event, user_id, event_time, data) VALUES ($1,$2,$3,$4)', [event || 'UNKNOWN_EVENT', user_id, event_time || new Date(), data ? JSON.stringify(data) : '{}']);
-    res.status(201).json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
+    const { event, user_id, event_time, data } = req.body;
+    try {
+      await pool.query(
+          'INSERT INTO audit_logs (event, user_id, event_time, data) VALUES ($1,$2, NOW(), $4)', 
+          [event || 'UNKNOWN_EVENT', user_id, /* $3 удалили, пишем NOW() */ data ? JSON.stringify(data) : '{}']
+      );
+      
+      res.status(201).json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
 });
-
-// --- START SERVER ---
-const PORT = 5000;
-app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));
+  // --- START SERVER ---
+  const PORT = 5000;
+  app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));

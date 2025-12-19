@@ -1,146 +1,139 @@
 import React from "react";
 
-const EntPage = ({ tests, onStart }) => {
-  // Фильтрация (предполагаем, что backend не фильтрует, делаем это здесь)
-  // Если у тестов нет поля 'category', можно фильтровать по имени или subject
-  // const entTests = tests.filter(t => t.subject === 'ent' || t.name.includes('ЕНТ'));
-
-  // ПОКА ОСТАВЛЯЮ ВСЕ ТЕСТЫ, разблокируй фильтр выше, если есть поле
-  const displayTests = tests;
-
+const EntPage = ({ tests = [], onStart }) => {
+  // 👇 ДОБАВЛЕНО УСЛОВИЕ: && test.published === true
+  const displayTests = tests.filter((test) => 
+    test.type && 
+    test.type.trim().toUpperCase() === 'ENT' && 
+    test.published === true 
+  );
   return (
     <div className="fade-in">
-      {/* Специальный баннер для ЕНТ */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-          borderRadius: "32px",
-          padding: "40px",
-          color: "#fff",
-          marginBottom: "40px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              fontSize: "28px",
-              fontWeight: "800",
-              marginBottom: "10px",
-            }}
-          >
-            ЕНТ Тестирование
-          </h2>
-          <p style={{ opacity: 0.9 }}>
-            Единое Национальное Тестирование для поступления в ВУЗы.
-          </p>
+      {/* БАННЕР */}
+      <div style={styles.bannerBlue}>
+        <div style={styles.bannerGlow}></div>
+        <div style={{position: 'relative', zIndex: 1}}>
+          <h2 style={styles.bannerTitle}>ЕНТ Тестирование</h2>
+          <p style={styles.bannerText}>Единое Национальное Тестирование для поступления в ВУЗы.</p>
         </div>
-        <div style={{ fontSize: "80px" }}>🎓</div>
+        <div style={styles.emoji}>🎓</div>
       </div>
 
-      <h3
-        style={{
-          fontSize: "22px",
-          fontWeight: "800",
-          color: "#1e293b",
-          marginBottom: "20px",
-        }}
-      >
-        Доступные предметы
-      </h3>
+      <h3 style={styles.sectionTitle}>Доступные предметы</h3>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: "30px",
-        }}
-      >
-        {displayTests.map((test) => {
-          const isFinished = !!test.end_time;
-          const isStarted = !!test.start_time && !test.end_time;
-          return (
-            <div
-              key={test.id}
-              style={{
-                background: "#fff",
-                padding: "30px",
-                borderRadius: "28px",
-                border: "1px solid #f1f5f9",
-                transition: "transform 0.2s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = "translateY(-5px)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = "translateY(0)")
-              }
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "20px",
-                }}
-              >
-                <span style={{ fontSize: "26px" }}>📐</span>
-                <span
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    background: isFinished ? "#dcfce7" : "#f1f5f9",
-                    color: isFinished ? "#166534" : "#475569",
-                  }}
+      <div style={styles.grid}>
+        {displayTests.length > 0 ? (
+          displayTests.map((test) => {
+            const isFinished = !!test.end_time;
+            return (
+              <div key={test.id} style={styles.card}>
+                <div style={styles.cardHeader}>
+                  <div style={styles.iconBoxBlue}>📐</div>
+                  <span style={isFinished ? styles.badgeSuccess : styles.badgeActive}>
+                    {isFinished ? "Сдано" : "Активен"}
+                  </span>
+                </div>
+                <h4 style={styles.cardTitle}>{test.name}</h4>
+                <p style={styles.cardSubject}>{test.subject}</p>
+                <button
+                  onClick={() => onStart(test.id, isFinished)}
+                  style={styles.btnBlue}
                 >
-                  {isFinished ? "Сдано" : "Активен"}
-                </span>
+                  {isFinished ? "Смотреть результат" : "Начать тест"}
+                </button>
               </div>
-              <h4
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "800",
-                  color: "#1e293b",
-                  margin: "0 0 6px 0",
-                }}
-              >
-                {test.name}
-              </h4>
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "#94a3b8",
-                  fontWeight: "600",
-                  marginBottom: "20px",
-                }}
-              >
-                {test.subject}
-              </p>
-
-              <button
-                onClick={() => onStart(test.id, isFinished)}
-                style={{
-                  width: "100%",
-                  padding: "16px",
-                  borderRadius: "16px",
-                  border: "none",
-                  background: "#3b82f6",
-                  color: "#fff",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                }}
-              >
-                {isFinished ? "Результат" : "Начать тест"}
-              </button>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div style={styles.emptyState}>
+             <div style={{fontSize: '40px', marginBottom: '10px'}}>📭</div>
+             Тесты ЕНТ пока не добавлены.
+          </div>
+        )}
       </div>
     </div>
   );
+};
+
+const styles = {
+  bannerBlue: {
+    background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)",
+    border: "1px solid rgba(59, 130, 246, 0.3)",
+    borderRadius: "24px",
+    padding: "40px",
+    color: "#fff",
+    marginBottom: "40px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  bannerGlow: {
+    position: "absolute",
+    top: "-50%",
+    right: "-10%",
+    width: "300px",
+    height: "300px",
+    background: "radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)",
+    filter: "blur(40px)",
+  },
+  bannerTitle: { fontSize: "32px", fontWeight: "800", margin: "0 0 10px 0", color: "#fff" },
+  bannerText: { fontSize: "16px", color: "#94a3b8", margin: 0 },
+  emoji: { fontSize: "80px", position: "relative", zIndex: 1 },
+  
+  sectionTitle: { fontSize: "24px", fontWeight: "800", color: "#fff", marginBottom: "25px" },
+  
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" },
+  
+  card: {
+    background: "rgba(255, 255, 255, 0.03)",
+    backdropFilter: "blur(10px)",
+    padding: "28px",
+    borderRadius: "24px",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    display: "flex", 
+    flexDirection: "column",
+    transition: "transform 0.3s ease",
+  },
+  cardHeader: { display: "flex", justifyContent: "space-between", marginBottom: "20px" },
+  
+  iconBoxBlue: { 
+    fontSize: "24px", 
+    background: "rgba(59, 130, 246, 0.2)", 
+    color: "#60a5fa",
+    width: "48px", 
+    height: "48px", 
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    borderRadius: "14px",
+    border: "1px solid rgba(59, 130, 246, 0.3)"
+  },
+  
+  badgeActive: { padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(255, 255, 255, 0.1)", color: "#94a3b8", height: "fit-content" },
+  badgeSuccess: { padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(16, 185, 129, 0.2)", color: "#34d399", height: "fit-content", border: "1px solid rgba(16, 185, 129, 0.3)" },
+  
+  cardTitle: { fontSize: "20px", fontWeight: "700", color: "#fff", margin: "0 0 8px 0" },
+  cardSubject: { fontSize: "14px", color: "#94a3b8", marginBottom: "24px", flex: 1 },
+  
+  btnBlue: {
+    width: "100%", padding: "14px", borderRadius: "14px", border: "none",
+    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", 
+    color: "#fff", fontWeight: "600", cursor: "pointer", fontSize: "14px",
+    boxShadow: "0 4px 15px rgba(59, 130, 246, 0.3)",
+    transition: "transform 0.2s",
+  },
+  
+  emptyState: { 
+      gridColumn: "1 / -1",
+      background: "rgba(255,255,255,0.02)", 
+      border: "1px dashed rgba(255,255,255,0.1)",
+      borderRadius: "20px",
+      padding: "40px",
+      textAlign: "center",
+      color: "#94a3b8" 
+  }
 };
 
 export default EntPage;
