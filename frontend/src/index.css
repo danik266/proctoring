@@ -1,5 +1,7 @@
-/* Файл: src/index.css */
-
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 :root {
   width: 100%;
 }
@@ -17,7 +19,7 @@ body {
   min-height: 100vh;
   background-color: #1a1a1a; /* Темный фон как на скрине */
   color: white;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 #root {
