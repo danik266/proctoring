@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "@vladmandic/face-api";
-import * as cocoSsd from "@tensorflow-models/coco-ssd";
+
 
 const MODEL_URL = "https://vladmandic.github.io/face-api/model/";
 

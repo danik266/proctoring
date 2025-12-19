@@ -3,13 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  // Проверяем авторизацию по токену
   const isAuthenticated = !!localStorage.getItem("token");
 
   const handleLogout = () => {
-    localStorage.clear(); // Очищаем всё: токен, роль, ответы
+    localStorage.clear();
     navigate("/auth");
-    window.location.reload(); // Перезагружаем для сброса состояния App
+    window.location.reload();
   };
 
   return (
@@ -54,7 +53,10 @@ const navStyles = {
     position: "sticky", 
     top: 0, 
     zIndex: 1000,
-    fontFamily: "'Inter', sans-serif"
+    fontFamily: "'Inter', sans-serif",
+    // 👇 ВОТ ЭТИ ДВЕ СТРОКИ РЕШАЮТ ПРОБЛЕМУ 👇
+    width: "100%", 
+    boxSizing: "border-box" 
   },
   logo: { 
     fontWeight: "900", 
@@ -98,5 +100,4 @@ const navStyles = {
   }
 };
 
-// ОБЯЗАТЕЛЬНО:
 export default Navbar;

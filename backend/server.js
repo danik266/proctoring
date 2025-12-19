@@ -1,12 +1,14 @@
+require('dotenv').config();
+
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const fetch = require('node-fetch'); // npm i node-fetch
 
-// --- ИМПОРТЫ ТВОИХ ФАЙЛОВ ---
 const authRoutes = require('./routes/auth'); 
-const pool = require('./db'); // Твой файл подключения к БД
+const pool = require('./db'); // твоя БД
 
 const app = express();
 
@@ -14,286 +16,215 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- МАРШРУТ ДЛЯ ДАШБОРДА ---
-app.get('/api/dashboard/:userId', async (req, res) => {
-  const { userId } = req.params;
-  console.log(`Получен запрос дашборда для юзера: ${userId}`);
-
-  try {
-    const userResult = await pool.query(
-      'SELECT full_name, role, school, class FROM public.users WHERE id = $1', 
-      [userId]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: "Пользователь не найден" });
-    }
-
-    const testsResult = await pool.query(`
-      SELECT 
-        t.id, 
-        t.name, 
-        t.subject, 
-        t.duration_minutes,
-        (SELECT count(*) FROM public.questions q WHERE q.test_id = t.id) as q_count,
-        s.start_time,
-        s.end_time,
-        s.score -- Добавил вывод балла, если он есть
-      FROM public.tests t
-      LEFT JOIN public.test_sessions s ON t.id = s.test_id AND s.user_id = $1
-    `, [userId]);
-
-    res.json({
-      user: userResult.rows[0],
-      tests: testsResult.rows
-    });
-    
-  } catch (err) {
-    console.error('Ошибка в SQL-запросе:', err);
-    res.status(500).json({ error: 'Ошибка базы данных' });
-  }
-});
-
 // --- ПАПКИ ДЛЯ ФАЙЛОВ ---
 const SCREENSHOTS_DIR = path.join(__dirname, 'upload-screenshot');
 const VIDEOS_DIR = path.join(__dirname, 'upload-video');
-
 [SCREENSHOTS_DIR, VIDEOS_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// --- НАСТРОЙКА MULTER ---
+// --- MULTER ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.fieldname === "screenshot") cb(null, SCREENSHOTS_DIR);
-    else cb(null, VIDEOS_DIR);
+    cb(null, file.fieldname === 'screenshot' ? SCREENSHOTS_DIR : VIDEOS_DIR);
   },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage });
 
+// --- AUTH ---
 app.use('/api/auth', authRoutes);
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-// 2. Скриншоты
-app.post('/upload-screenshot', upload.single('screenshot'), (req, res) => {
-  res.send({ status: 'ok', filename: req.file.filename });
-});
-
-// Маршрут для загрузки видео и записи ссылки в БД
-app.post('/upload-video', upload.single('session_video'), async (req, res) => {
-  const { sessionId } = req.body; // Получаем из FormData
-
-  if (!req.file) {
-    return res.status(400).json({ error: "Файл видео не получен" });
-  }
-
-  const fileName = req.file.filename; // Имя файла, уже сохраненное в папку uploads
-
+async function sendMessage(chatId, text) {
   try {
-    if (sessionId) {
-      // Обновляем таблицу test_sessions, записываем имя файла в recording_links
-      const updateQuery = `
-        UPDATE public.test_sessions 
-        SET recording_links = $1 
-        WHERE id = $2
-      `;
-      
-      const result = await pool.query(updateQuery, [fileName, sessionId]);
+    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text })
+    });
+  } catch (err) {
+    console.error('Ошибка отправки Telegram-сообщения:', err);
+  }
+}
 
-      if (result.rowCount === 0) {
-        console.warn(`⚠️ Сессия с ID ${sessionId} не найдена в базе.`);
-        return res.status(404).json({ error: "Сессия не найдена" });
+let offset = 0;
+
+async function pollUpdates() {
+  try {
+    const res = await fetch(`${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=10`);
+    const data = await res.json();
+
+    if (data.ok && data.result.length > 0) {
+      for (const update of data.result) {
+        offset = update.update_id + 1; // чтобы не получать старые
+        if (update.message && update.message.text === '/start') {
+          const chatId = update.message.chat.id;
+          await sendMessage(chatId, `Ваш Telegram ID: ${chatId}`);
+        }
       }
-
-      console.log(`✅ Видео ${fileName} привязано к сессии ${sessionId}`);
-      res.json({ status: 'ok', filename: fileName, sessionId });
-    } else {
-      console.warn("⚠️ Видео получено, но sessionId отсутствует в запросе.");
-      res.status(400).json({ error: "sessionId is required" });
     }
   } catch (err) {
-    console.error("❌ Ошибка при обновлении записи в БД:", err);
+    console.error("Ошибка Telegram polling:", err);
+  } finally {
+    setTimeout(pollUpdates, 1000);
+  }
+}
+
+// Инициализация offset, чтобы пропустить старые апдейты
+async function initTelegram() {
+  try {
+    const res = await fetch(`${TELEGRAM_API}/getUpdates`);
+    const data = await res.json();
+    if (data.ok && data.result.length > 0) {
+      offset = data.result[data.result.length - 1].update_id + 1;
+    }
+  } catch (err) {
+    console.error("Ошибка инициализации Telegram:", err);
+  }
+  pollUpdates();
+}
+
+initTelegram();
+// --- DASHBOARD ---
+app.get('/api/dashboard/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userResult = await pool.query('SELECT full_name, role, school, class FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) return res.status(404).json({ error: "Пользователь не найден" });
+
+    const testsResult = await pool.query(`
+      SELECT t.id, t.name, t.subject, t.duration_minutes,
+        (SELECT count(*) FROM questions q WHERE q.test_id = t.id) as q_count,
+        s.start_time, s.end_time, s.score
+      FROM tests t
+      LEFT JOIN test_sessions s ON t.id = s.test_id AND s.user_id = $1
+    `, [userId]);
+
+    res.json({ user: userResult.rows[0], tests: testsResult.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка базы данных' });
+  }
+});
+
+// --- Загрузка скриншотов ---
+app.post('/upload-screenshot', upload.single('screenshot'), (req, res) => {
+  res.json({ status: 'ok', filename: req.file.filename });
+});
+
+// --- Загрузка видео ---
+app.post('/upload-video', upload.single('session_video'), async (req, res) => {
+  const { sessionId } = req.body;
+  if (!req.file) return res.status(400).json({ error: "Файл не получен" });
+
+  const fileName = req.file.filename;
+  try {
+    if (sessionId) {
+      const result = await pool.query('UPDATE test_sessions SET recording_links = $1 WHERE id = $2', [fileName, sessionId]);
+      if (result.rowCount === 0) return res.status(404).json({ error: "Сессия не найдена" });
+      res.json({ status: 'ok', filename: fileName, sessionId });
+    } else {
+      res.status(400).json({ error: "sessionId обязателен" });
+    }
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-// --- СТАРТ ТЕСТА ---
+
+// --- START TEST ---
 app.post('/api/tests/start', async (req, res) => {
-  console.log("📥 Пришел запрос START. Тело:", req.body); 
-
-  const user_id = req.body.user_id || req.body.userId;
-  const test_id = req.body.test_id || req.body.testId;
-
-  if (!user_id || !test_id) {
-    console.error("❌ Ошибка: не переданы ID");
-    return res.status(400).json({ error: "Не получен user_id или test_id" });
-  }
+  const { user_id, test_id } = req.body;
+  if (!user_id || !test_id) return res.status(400).json({ error: "user_id и test_id обязателен" });
 
   try {
     const existingSession = await pool.query(
-      'SELECT id FROM public.test_sessions WHERE user_id = $1 AND test_id = $2 AND end_time IS NULL',
+      'SELECT id FROM test_sessions WHERE user_id = $1 AND test_id = $2 AND end_time IS NULL',
       [user_id, test_id]
     );
-
-    if (existingSession.rows.length > 0) {
-      console.log("♻️ Найдена активная сессия:", existingSession.rows[0].id);
-      return res.json({ sessionId: existingSession.rows[0].id, message: 'Сессия уже существует' });
-    }
+    if (existingSession.rows.length > 0) return res.json({ sessionId: existingSession.rows[0].id });
 
     const newSession = await pool.query(
-      'INSERT INTO public.test_sessions (user_id, test_id, start_time) VALUES ($1, $2, NOW()) RETURNING id',
+      'INSERT INTO test_sessions (user_id, test_id, start_time) VALUES ($1, $2, NOW()) RETURNING id',
       [user_id, test_id]
     );
-
-    console.log(`🚀 Создана новая сессия: ${newSession.rows[0].id}`);
     res.json({ sessionId: newSession.rows[0].id });
-
   } catch (err) {
-    console.error('❌ ОШИБКА SQL:', err);
-    res.status(500).json({ error: 'Ошибка базы данных', details: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка базы данных' });
   }
 });
 
-// --- ПОЛУЧЕНИЕ ВОПРОСОВ ---
+// --- GET QUESTIONS ---
 app.get('/api/tests/:testId/questions', async (req, res) => {
   const { testId } = req.params;
-  console.log(`🔎 Запрос вопросов для теста ID: ${testId}`);
-
   try {
-    // ВАЖНО: Мы НЕ выбираем поле correct_answer, чтобы не отправлять его на фронтенд заранее
-    const result = await pool.query(
-      'SELECT id, text, type, points, options FROM public.questions WHERE test_id = $1 ORDER BY id ASC',
-      [testId]
-    );
-    res.json(result.rows); 
+    const result = await pool.query('SELECT id, text, type, points, options FROM questions WHERE test_id = $1 ORDER BY id ASC', [testId]);
+    res.json(result.rows);
   } catch (err) {
-    console.error('❌ Ошибка выполнения SQL:', err);
+    console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-app.post('/api/tests/submit', async (req, res) => {
-  const { user_id, test_id, answers } = req.body;
-  const session_id = req.body.session_id || req.body.sessionId;
 
-  if (!user_id || !test_id || !answers) {
-    return res.status(400).json({ error: "Недостаточно данных" });
-  }
+// --- SUBMIT TEST ---
+app.post('/api/tests/submit', async (req, res) => {
+  const { user_id, test_id, answers, session_id } = req.body;
+  if (!user_id || !test_id || !answers) return res.status(400).json({ error: "Недостаточно данных" });
 
   try {
-    await pool.query('BEGIN'); // Старт транзакции
-
-    // 1. ПОЛУЧАЕМ ПРАВИЛЬНЫЕ ОТВЕТЫ (Исправлено название колонки!)
-    const questionsDb = await pool.query(
-      'SELECT id, points, correct_answers FROM public.questions WHERE test_id = $1',
-      [test_id]
-    );
-
-    // Создаем Map для быстрого поиска
+    await pool.query('BEGIN');
+    const questionsDb = await pool.query('SELECT id, points, correct_answers FROM questions WHERE test_id = $1', [test_id]);
     const questionsMap = new Map();
     let maxTotalPoints = 0;
-    
-    questionsDb.rows.forEach(q => {
-      questionsMap.set(q.id, q);
-      maxTotalPoints += (q.points || 1);
-    });
+    questionsDb.rows.forEach(q => { questionsMap.set(q.id, q); maxTotalPoints += q.points || 1; });
 
     let currentScore = 0;
-    const resultDetails = {}; 
-
-    const queryInsertAnswer = `
-      INSERT INTO answers 
-      (user_id, test_id, question_id, answer_text, answer_time, points_awarded, checked)
-      VALUES ($1, $2, $3, $4, NOW(), $5, true)
-    `;
+    const resultDetails = {};
 
     for (const ans of answers) {
-      const dbQuestion = questionsMap.get(ans.question_id);
-      
-      let pointsAwarded = 0;
-      let isCorrect = false;
-      let correctAnswerDb = null;
-
-      if (dbQuestion) {
-        // --- ИСПРАВЛЕНО: Берем значение из твоей колонки correct_answers ---
-        correctAnswerDb = dbQuestion.correct_answers;
-        
-        // Сравниваем как строки (чтобы "1" было равно 1)
-        // Trim() убирает лишние пробелы, если они случайно попали в базу
-        if (String(ans.answer_text).trim() === String(correctAnswerDb).trim()) {
-          pointsAwarded = dbQuestion.points || 1;
-          isCorrect = true;
+      const dbQ = questionsMap.get(ans.question_id);
+      let pointsAwarded = 0, isCorrect = false, correctAnswer = null;
+      if (dbQ) {
+        correctAnswer = dbQ.correct_answers;
+        if (String(ans.answer_text).trim() === String(correctAnswer).trim()) {
+          pointsAwarded = dbQ.points || 1;
           currentScore += pointsAwarded;
+          isCorrect = true;
         }
-
-        // Сохраняем для фронтенда (чтобы подсветить зеленым/красным)
-        resultDetails[ans.question_id] = {
-          correct_answer: correctAnswerDb,
-          is_correct: isCorrect
-        };
+        resultDetails[ans.question_id] = { correct_answer: correctAnswer, is_correct: isCorrect };
       }
-
-      // Сохраняем ответ пользователя
-      await pool.query(queryInsertAnswer, [
-        user_id,
-        test_id,
-        ans.question_id,
-        ans.answer_text,
-        pointsAwarded
-      ]);
-    }
-
-    // Обновляем сессию
-    if (session_id) {
       await pool.query(
-        'UPDATE public.test_sessions SET end_time = NOW(), score = $1 WHERE id = $2',
-        [currentScore, session_id]
+        'INSERT INTO answers (user_id, test_id, question_id, answer_text, answer_time, points_awarded, checked) VALUES ($1,$2,$3,$4,NOW(),$5,true)',
+        [user_id, test_id, ans.question_id, ans.answer_text, pointsAwarded]
       );
     }
 
-    await pool.query('COMMIT'); 
+    if (session_id) await pool.query('UPDATE test_sessions SET end_time = NOW(), score = $1 WHERE id = $2', [currentScore, session_id]);
+    await pool.query('COMMIT');
 
-    res.json({ 
-      message: "Тест завершен",
-      score: currentScore,
-      total_points: maxTotalPoints,
-      details: resultDetails 
-    });
-
+    res.json({ message: "Тест завершен", score: currentScore, total_points: maxTotalPoints, details: resultDetails });
   } catch (err) {
     await pool.query('ROLLBACK');
-    console.error("Ошибка сохранения ответов:", err);
+    console.error(err);
     res.status(500).json({ error: "Ошибка сервера при сохранении" });
   }
 });
-// --- ЛОГИРОВАНИЕ ---
+
+// --- AUDIT LOG ---
 app.post('/api/audit/log', async (req, res) => {
   const { event, user_id, event_time, data } = req.body;
-  console.log("📥 Попытка записи лога:", req.body);
-
   try {
-    const query = `
-      INSERT INTO public.audit_logs (event, user_id, event_time, data)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id;
-    `;
-    
-    const values = [
-      event || 'UNKNOWN_EVENT', 
-      user_id, 
-      event_time || new Date(), 
-      data ? JSON.stringify(data) : '{}'
-    ];
-    
-    const result = await pool.query(query, values);
+    await pool.query('INSERT INTO audit_logs (event, user_id, event_time, data) VALUES ($1,$2,$3,$4)', [event || 'UNKNOWN_EVENT', user_id, event_time || new Date(), data ? JSON.stringify(data) : '{}']);
     res.status(201).json({ success: true });
   } catch (err) {
-    console.error("❌ ОШИБКА БД:", err.message); 
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
+// --- START SERVER ---
 const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Сервер на порту ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));
