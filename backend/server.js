@@ -229,8 +229,14 @@ app.post('/api/audit/log', async (req, res) => {
     const { event, user_id, event_time, data } = req.body;
     try {
       await pool.query(
-          'INSERT INTO audit_logs (event, user_id, event_time, data) VALUES ($1,$2, NOW(), $4)', 
-          [event || 'UNKNOWN_EVENT', user_id, /* $3 удалили, пишем NOW() */ data ? JSON.stringify(data) : '{}']
+          // 👇 ИСПРАВЛЕНО: $4 заменено на $3 (так как это третий элемент массива)
+          'INSERT INTO audit_logs (event, user_id, event_time, data) VALUES ($1, $2, NOW(), $3)', 
+          [
+            event || 'UNKNOWN_EVENT', 
+            user_id, 
+            // Это третий элемент массива, значит он соответствует $3
+            data ? JSON.stringify(data) : '{}'
+          ]
       );
       
       res.status(201).json({ success: true });
