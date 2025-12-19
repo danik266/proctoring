@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [isOpen, setIsOpen] = useState(false);
 
+=======
+>>>>>>> 659d6b2ad56cd53c65df28b33af99d5c5a9e4096
   const isAuthenticated = !!localStorage.getItem("token");
 
   const handleLogout = () => {
@@ -129,6 +132,7 @@ const Navbar = () => {
 };
 
 const navStyles = {
+<<<<<<< HEAD
   navbar: {
     display: "flex",
     justifyContent: "space-between", // Распределяет Лого слева, Гамбургер справа
@@ -143,6 +147,23 @@ const navStyles = {
     fontFamily: "'Inter', sans-serif",
     width: "100%", // Гарантирует ширину
     boxSizing: "border-box", // Чтобы padding не ломал ширину
+=======
+  navbar: { 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    padding: "15px 60px", 
+    background: "rgba(255,255,255,0.9)", 
+    backdropFilter: "blur(10px)", 
+    borderBottom: "1px solid #e2e8f0", 
+    position: "sticky", 
+    top: 0, 
+    zIndex: 1000,
+    fontFamily: "'Inter', sans-serif",
+    // 👇 ВОТ ЭТИ ДВЕ СТРОКИ РЕШАЮТ ПРОБЛЕМУ 👇
+    width: "100%", 
+    boxSizing: "border-box" 
+>>>>>>> 659d6b2ad56cd53c65df28b33af99d5c5a9e4096
   },
   logo: {
     fontWeight: "900",
@@ -182,4 +203,8 @@ const navStyles = {
   },
 };
 
+<<<<<<< HEAD
 export default Navbar;
+=======
+export default Navbar;
+>>>>>>> 659d6b2ad56cd53c65df28b33af99d5c5a9e4096
