@@ -21,12 +21,12 @@ const TeamPage = () => {
 
   const teamMembers = [
     { id: 1, name: "gay", role: "Developer", color: "#8b5cf6", insta: "https://instagram.com/yxungymlover911" },
-    { id: 2, name: "ab1lion", role: "Developer", color: "#06b6d4", insta: "https://instagram.com/ab1lmns" },
+    { id: 2, name: "ab1lion", role: "Developer", color: "#c8ff00ff", insta: "https://instagram.com/ab1lmns" },
     { id: 3, name: "w1zantiya", role: "Developer", color: "#f59e0b", insta: "https://instagram.com/eldowxl" },
     { id: 4, name: "armanello", role: "Developer", color: "#ec4899", insta: "https://instagram.com/arrmanelo" },
-    { id: 5, name: "4etyre", role: "Developer", color: "#d946ef", insta: "https://instagram.com/4etyre" },
+    { id: 5, name: "4etyre", role: "Developer", color: "#00BFFF", insta: "https://instagram.com/4etyre" },
     { id: 6, name: "Kaimory", role: "Developer", color: "#10b981", insta: "https://instagram.com/kaimory7" },
-    { id: 7, name: "yatogorot_", role: "Developer", color: "#3b82f6", insta: "https://instagram.com/yatogorot_" },
+    { id: 7, name: "yatogorot_", role: "Developer", color: "#d946ef", insta: "https://instagram.com/yatogorot_" },
   ];
 
   const techStack = ["React", "Next.js", "Python", "FastAPI", "PostgreSQL", "Docker", "Tailwind"];
@@ -35,8 +35,8 @@ const TeamPage = () => {
   const codeSymbols = [
       "{ }", "</>", ";", "[ ]", "=>", "&&", "||", "$", "()",
       "import", "return", "const", "let", "async", "await", "function",
-      "if", "else", "try", "catch", "Bug", "Fix", "TODO:", "NaN",
-      "npm i", "git push", "☕", "🔥", "🚀", "..."
+      "if", "else", "try", "catch", "GYMCODERS", "Fix", "TODO:", "NaN",
+      "npm i", "git push", "☕", "🔥", "GYMCODERS", "..."
   ];
   
   // Дублируем список, чтобы их было физически больше на экране
