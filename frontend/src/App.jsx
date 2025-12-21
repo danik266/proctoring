@@ -8,7 +8,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Navbar from "./components/Navbar";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
-
+import TeamPage from "./pages/TeamPage"
 // Обертка для защиты приватных страниц
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem("token");
@@ -22,7 +22,7 @@ const Layout = ({ children }) => {
 
   // Список путей, где Navbar НЕ должен отображаться
   // Добавь сюда "/dashboard" или "/admin", если там есть свои меню
-  const hideNavbarPaths = ["/", "/auth"]; 
+  const hideNavbarPaths = ["/", "/auth","/team"]; 
   
   // Проверяем: если текущий путь НЕ в списке скрытых, показываем навбар
   const shouldShowNavbar = !hideNavbarPaths.includes(location.pathname);
@@ -73,7 +73,7 @@ function App() {
               </PrivateRoute>
             } 
           />
-
+          <Route path="/team" element={<TeamPage />} />
           {/* Если страница не найдена — редирект на главную */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

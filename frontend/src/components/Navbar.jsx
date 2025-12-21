@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // 👇 Хук чтобы знать где мы
+  const location = useLocation();
   const isAuthenticated = !!localStorage.getItem("token");
 
   // Проверка: мы на странице авторизации?
@@ -18,14 +18,34 @@ const Navbar = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
-        .nav-btn { transition: all 0.3s ease; }
-        .nav-btn:hover { transform: translateY(-2px); text-shadow: 0 0 8px rgba(255,255,255,0.5); }
+        /* Анимация ссылок меню */
+        .nav-btn { 
+            transition: all 0.2s ease; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .nav-btn:hover { 
+            color: #6366f1 !important; 
+            background: #eef2ff !important;
+        }
         
-        .login-btn:hover { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6) !important; transform: translateY(-2px); }
-        .logout-btn:hover { background: rgba(239, 68, 68, 0.15) !important; border-color: #ef4444 !important; }
+        /* Кнопка Войти */
+        .login-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4) !important; 
+            background: #4f46e5 !important;
+        }
         
+        /* Кнопка Выйти */
+        .logout-btn:hover { 
+            background: #fef2f2 !important; 
+            border-color: #ef4444 !important; 
+            color: #dc2626 !important;
+            transform: translateY(-1px);
+        }
+        
+        /* Логотип */
         .logo-container:hover .logo-icon { transform: rotate(10deg); }
       `}</style>
 
@@ -37,18 +57,17 @@ const Navbar = () => {
             onClick={() => navigate("/")}
         >
           <div style={navStyles.logoIcon} className="logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </div>
           <span style={navStyles.logoText}>
-            JANA <span style={{ color: "#a5b4fc", fontWeight: "400" }}>TEST</span>
+            JANA <span style={{ color: "#6366f1" }}>TEST</span>
           </span>
         </div>
         
         {/* LINKS */}
         <div style={navStyles.links}>
-          {/* Кнопка Главная всегда видна */}
           <button 
             className="nav-btn"
             style={navStyles.navItem} 
@@ -58,7 +77,7 @@ const Navbar = () => {
           </button>
           
           {isAuthenticated ? (
-            /* ЕСЛИ ВОШЕЛ: показываем Дашборд и Выход */
+            /* ЕСЛИ ВОШЕЛ */
             <>
               <button 
                 className="nav-btn"
@@ -78,7 +97,6 @@ const Navbar = () => {
           ) : (
             /* ЕСЛИ НЕ ВОШЕЛ */
             <>
-               {/* Показываем кнопку "Войти" ТОЛЬКО если мы НЕ на странице авторизации */}
                {!isAuthPage && (
                   <button 
                     onClick={() => navigate("/auth")} 
@@ -86,11 +104,6 @@ const Navbar = () => {
                     style={navStyles.login}
                   >
                     Войти
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginLeft: '8px'}}>
-                       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                       <polyline points="10 17 15 12 10 7"/>
-                       <line x1="15" y1="12" x2="3" y2="12"/>
-                    </svg>
                   </button>
                )}
             </>
@@ -103,82 +116,84 @@ const Navbar = () => {
 
 const navStyles = {
   navbar: { 
-    display: "flex", 
-    justifyContent: "space-between", 
+    width: "100%", 
+    display: "flex",                 // Вернул flex
+    justifyContent: "space-between", // Вернул разброс по краям
     alignItems: "center", 
-    padding: "15px 60px", 
-    background: "rgba(15, 12, 41, 0.7)", 
-    backdropFilter: "blur(20px)", 
-    borderBottom: "1px solid rgba(255, 255, 255, 0.08)", 
+    padding: "15px 40px",            // Вернул отступы по бокам
+    background: "rgba(255, 255, 255, 0.8)", 
+    backdropFilter: "blur(12px)", 
+    borderBottom: "1px solid #e2e8f0", 
     position: "sticky", 
     top: 0, 
     zIndex: 1000,
-    fontFamily: "'Inter', sans-serif",
-    width: "100%", 
-    boxSizing: "border-box",
-    boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    boxSizing: "border-box",         // Важно, чтобы padding не ломал ширину
   },
   logo: { 
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "10px",
     cursor: "pointer", 
   },
   logoIcon: {
-    width: "36px",
-    height: "36px",
+    width: "34px",
+    height: "34px",
     borderRadius: "10px",
     background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)",
+    boxShadow: "0 4px 10px rgba(99, 102, 241, 0.3)",
     transition: "transform 0.3s ease"
   },
   logoText: {
     fontWeight: "800", 
     fontSize: "20px", 
     letterSpacing: "-0.5px",
-    color: "#fff",
+    color: "#0f172a", 
   },
   links: { 
     display: "flex", 
-    gap: "30px", 
+    gap: "12px", 
     alignItems: "center" 
   },
   navItem: { 
-    background: "none", 
+    background: "transparent", 
     border: "none", 
     fontWeight: "600", 
-    color: "#cbd5e1", 
+    color: "#64748b", 
     cursor: "pointer",
     fontSize: "14px",
-    letterSpacing: "0.5px",
+    padding: "8px 16px",
+    borderRadius: "8px",
   },
   login: { 
     display: "flex",
     alignItems: "center",
     padding: "10px 24px", 
-    borderRadius: "12px", 
-    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", 
+    borderRadius: "10px", 
+    background: "#6366f1", 
     color: "#fff", 
     border: "none", 
     fontWeight: "700", 
     fontSize: "14px",
     cursor: "pointer",
-    boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
-    transition: "all 0.3s ease",
+    boxShadow: "0 4px 12px rgba(99, 102, 241, 0.25)",
+    transition: "all 0.2s ease",
+    marginLeft: "10px",
   },
   logout: { 
-    padding: "9px 24px", 
-    borderRadius: "12px", 
-    border: "1px solid rgba(239, 68, 68, 0.5)", 
+    padding: "9px 20px", 
+    borderRadius: "10px", 
+    border: "1px solid #fee2e2", 
     color: "#ef4444", 
-    background: "rgba(239, 68, 68, 0.05)", 
+    background: "#fff", 
     fontWeight: "600", 
     fontSize: "14px", 
     cursor: "pointer",
-    transition: "all 0.3s ease",
+    transition: "all 0.2s ease",
+    marginLeft: "10px",
   }
 };
 

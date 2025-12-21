@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; 
 
-// === КОМПОНЕНТ КРАСИВОГО ВЫБОРА (DARK THEME) ===
+// === КОМПОНЕНТ КРАСИВОГО ВЫБОРА (LIGHT THEME) ===
 const CustomSelect = ({ options, value, onChange, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
@@ -31,7 +31,7 @@ const CustomSelect = ({ options, value, onChange, placeholder }) => {
         </span>
         <svg 
             width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s', color: '#94a3b8' }}
+            style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s', color: '#64748b' }}
         >
             <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
@@ -79,15 +79,12 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Имитация загрузки для примера, если бэкенд недоступен
-    // В реальном проекте раскомментируй axios
     const fetchSchools = async () => {
       try {
         const { data } = await axios.get("http://localhost:5000/api/admin/schools"); 
         setSchools(data);
       } catch (err) {
         console.error("Ошибка загрузки школ:", err);
-        // Fallback data для визуализации
         setSchools([{name: "Школа №1"}, {name: "Лицей №10"}, {name: "Гимназия №3"}]);
       }
     };
@@ -153,190 +150,190 @@ const Auth = () => {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="auth-page">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
-        body { margin: 0; padding: 0; overflow-x: hidden; }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #64748b;
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --card-bg: #ffffff;
+            --input-bg: #f8fafc;
+            --border-color: #e2e8f0;
+        }
+
+        body, html { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* === DARK SPACE BACKGROUND === */
-        .page-wrapper {
+        .auth-page {
           min-height: 100vh;
-          width: 100%;
-          background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+          width: 100vw; /* Строго ширина экрана */
+          background-color: var(--bg-color);
+          background-image: 
+            linear-gradient(#e2e8f0 1px, transparent 1px),
+            linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+          background-size: 40px 40px;
           display: flex;
           flex-direction: column;
+          align-items: center; /* Центрируем Navbar и контейнер */
+          color: var(--text-main);
           position: relative;
-          overflow: hidden;
-          color: white;
         }
 
-        /* Ambient Blobs Animation */
-        .page-wrapper::before {
-          content: ''; position: absolute; width: 600px; height: 600px;
-          background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
-          top: -150px; right: -150px; animation: pulse 6s ease-in-out infinite; z-index: 1;
-        }
-        .page-wrapper::after {
-          content: ''; position: absolute; width: 500px; height: 500px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
-          bottom: -100px; left: -100px; animation: pulse 6s ease-in-out infinite 3s; z-index: 1;
-        }
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 0.8; }
+        /* Контейнер формы */
+        .auth-container {
+          flex: 1;
+          width: 100%;
+          display: flex;
+          justify-content: center; /* Центр по горизонтали */
+          align-items: center;     /* Центр по вертикали */
+          padding: 20px;
         }
 
-        .auth-content-center {
-          flex: 1; display: flex; justify-content: center; align-items: center;
-          padding: 20px; z-index: 10;
-        }
-
-        /* === GLASS CARD === */
         .auth-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          width: 100%; max-width: 440px;
+          background: var(--card-bg);
+          width: 100%; 
+          max-width: 420px;
           padding: 40px;
           border-radius: 24px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          animation: fadeInUp 0.6s ease-out;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.05);
+          animation: fadeInUp 0.5s ease-out;
+          margin: 0 auto; /* Железное выравнивание */
+          text-align: left; /* Текст внутри слева (заголовки центрируем отдельно) */
         }
 
-        .auth-header { text-align: center; margin-bottom: 32px; }
+        .auth-header { 
+            text-align: center; /* Заголовки по центру */
+            margin-bottom: 32px; 
+            width: 100%;
+        }
         
+        .brand-logo {
+            font-size: 20px; font-weight: 900; color: var(--primary); 
+            display: inline-block; margin-bottom: 20px; letter-spacing: -0.5px;
+        }
+
         .auth-title { 
-            font-size: 28px; font-weight: 800; margin: 0 0 8px 0; 
-            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #c084fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 26px; font-weight: 800; margin: 0 0 8px 0; 
+            color: var(--text-main); letter-spacing: -0.5px;
         }
         
-        .auth-subtitle { font-size: 14px; color: #94a3b8; margin: 0; }
+        .auth-subtitle { font-size: 15px; color: var(--secondary); margin: 0; line-height: 1.5; }
 
-        .form-group { margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; width: 100%; }
         
-        /* === DARK INPUTS === */
         .input-field {
           width: 100%; padding: 14px 16px;
-          background: rgba(15, 23, 42, 0.6); /* Dark Blue/Slate bg */
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--input-bg);
+          border: 1px solid var(--border-color);
           border-radius: 12px;
-          font-size: 14px; color: #f8fafc;
-          transition: all 0.3s ease;
+          font-size: 15px; color: var(--text-main); font-weight: 500;
+          transition: all 0.2s ease;
           outline: none;
         }
-        .input-field::placeholder { color: #64748b; }
+        .input-field::placeholder { color: #94a3b8; font-weight: 400; }
         .input-field:focus { 
-            border-color: #8b5cf6; 
-            background: rgba(15, 23, 42, 0.8);
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); 
+            border-color: var(--primary); 
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); 
         }
 
-        /* Fix autofill background in Chrome */
-        .input-field:-webkit-autofill,
-        .input-field:-webkit-autofill:hover, 
-        .input-field:-webkit-autofill:focus {
-            -webkit-text-fill-color: white;
-            -webkit-box-shadow: 0 0 0px 1000px #1e1b4b inset;
-            transition: background-color 5000s ease-in-out 0s;
-        }
-
-        /* === CUSTOM SELECT (DARK) === */
+        /* === CUSTOM SELECT === */
         .custom-select-wrapper { position: relative; width: 100%; }
         .custom-select-trigger {
             width: 100%; padding: 14px 16px; 
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px; font-size: 14px; 
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px; font-size: 15px; 
             display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.3s;
+            cursor: pointer; transition: all 0.2s;
         }
-        .custom-select-trigger:hover { border-color: rgba(255, 255, 255, 0.3); }
-        .custom-select-trigger.open { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); }
+        .custom-select-trigger:hover { background: #f1f5f9; }
+        .custom-select-trigger.open { 
+            border-color: var(--primary); 
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); 
+        }
         
-        .val-placeholder { color: #64748b; }
-        .val-selected { color: #f8fafc; font-weight: 500; }
+        .val-placeholder { color: #94a3b8; }
+        .val-selected { color: var(--text-main); font-weight: 600; }
         
         .custom-options-list {
             position: absolute; top: 110%; left: 0; right: 0;
-            background: #1e1b4b; /* Deep Indigo */
-            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-height: 200px; overflow-y: auto; z-index: 100;
+            background: white;
+            border: 1px solid var(--border-color); border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            max-height: 220px; overflow-y: auto; z-index: 100;
             padding: 6px; animation: slideDown 0.2s ease-out;
         }
         .custom-option {
-            padding: 10px 12px; border-radius: 8px; font-size: 14px; color: #cbd5e1; cursor: pointer;
-            transition: background 0.2s;
+            padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--text-main); cursor: pointer;
+            transition: background 0.2s; font-weight: 500;
+            text-align: left;
         }
-        .custom-option:hover { background: rgba(139, 92, 246, 0.2); color: white; }
-        .custom-option.selected { background: rgba(139, 92, 246, 0.3); color: #a5b4fc; font-weight: 600; }
+        .custom-option:hover { background: #f1f5f9; color: var(--primary); }
+        .custom-option.selected { background: #eef2ff; color: var(--primary); font-weight: 700; }
         
-        /* Scrollbar for select */
-        .custom-options-list::-webkit-scrollbar { width: 6px; }
-        .custom-options-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-
-        /* === GRADIENT BUTTON === */
+        /* === BUTTONS === */
         .btn-primary {
-          width: 100%; padding: 14px; 
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          width: 100%; padding: 16px; 
+          background: var(--primary);
           color: white; border: none; border-radius: 12px;
-          font-size: 16px; font-weight: 600; cursor: pointer; 
-          transition: all 0.3s ease; margin-top: 12px;
-          box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+          font-size: 16px; font-weight: 700; cursor: pointer; 
+          transition: all 0.2s ease; margin-top: 12px;
+          box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.3);
+          display: flex; justify-content: center; align-items: center;
         }
         .btn-primary:hover { 
+            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.4);
         }
         .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
-        .toggle-text { text-align: center; margin-top: 24px; font-size: 14px; color: #94a3b8; }
+        .toggle-text { text-align: center; margin-top: 24px; font-size: 14px; color: var(--secondary); font-weight: 500; }
         .toggle-link { 
-            color: #a5b4fc; font-weight: 600; background: none; border: none; 
+            color: var(--primary); font-weight: 700; background: none; border: none; 
             cursor: pointer; padding: 0; margin-left: 6px; 
             transition: color 0.2s;
         }
-        .toggle-link:hover { color: #c084fc; text-decoration: underline; }
+        .toggle-link:hover { text-decoration: underline; color: var(--primary-dark); }
 
-        /* Checkbox customization */
-        .checkbox-wrapper { display: flex; gap: 10px; align-items: start; margin-bottom: 20px; }
+        .checkbox-wrapper { display: flex; gap: 10px; align-items: start; margin-bottom: 20px; justify-content: flex-start; }
         .checkbox-wrapper input[type="checkbox"] {
-            margin-top: 4px; accent-color: #8b5cf6; width: 16px; height: 16px;
+            margin-top: 3px; accent-color: var(--primary); width: 18px; height: 18px; cursor: pointer;
         }
-        .checkbox-text { font-size: 13px; color: #94a3b8; line-height: 1.4; }
+        .checkbox-text { font-size: 13px; color: var(--secondary); line-height: 1.4; font-weight: 500; text-align: left; }
 
-        /* MODAL (Dark Theme) */
+        /* MODAL */
         .modal-overlay {
           position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(15, 12, 41, 0.7); backdrop-filter: blur(4px);
+          background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
           display: flex; justify-content: center; align-items: center; z-index: 200;
           animation: fadeIn 0.2s ease-out;
         }
         .modal-content {
-          background: #1e293b; padding: 30px; border-radius: 20px; 
+          background: white; padding: 30px; border-radius: 20px; 
           width: 90%; max-width: 380px; text-align: center; 
-          border: 1px solid rgba(255,255,255,0.1);
-          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
           animation: scaleUp 0.2s ease-out;
-          color: white;
         }
         .modal-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; }
-        .modal-icon.error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-        .modal-icon.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .modal-icon.error { background: #fef2f2; color: #ef4444; }
+        .modal-icon.success { background: #f0fdf4; color: #22c55e; }
         
-        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: white; }
-        .modal-msg { font-size: 15px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5; }
+        .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); }
+        .modal-msg { font-size: 15px; color: var(--secondary); margin-bottom: 24px; line-height: 1.5; }
         
-        .modal-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-size: 15px; transition: transform 0.2s; }
+        .modal-btn { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; font-size: 15px; transition: transform 0.2s; }
         .modal-btn:hover { transform: translateY(-2px); }
-        .modal-btn.error { background: #ef4444; color: white; }
-        .modal-btn.success { background: #22c55e; color: white; }
+        .modal-btn.error { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .modal-btn.success { background: #22c55e; color: white; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -344,6 +341,7 @@ const Auth = () => {
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
 
+      {/* Navbar наверху, width 100% (контролируется внутри Navbar) */}
       <Navbar />
 
       {modal.show && (
@@ -363,11 +361,12 @@ const Auth = () => {
         </div>
       )}
 
-      <div className="auth-content-center">
+      <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <h2 className="auth-title">{twoFA ? "Проверка 2FA" : isLogin ? "Войти в систему" : "Регистрация"}</h2>
-            <p className="auth-subtitle">{twoFA ? "Введите код из Telegram" : isLogin ? "Добро пожаловать обратно" : "Начните подготовку к экзаменам"}</p>
+            <div className="brand-logo">JANA TEST</div>
+            <h2 className="auth-title">{twoFA ? "Проверка 2FA" : isLogin ? "С возвращением!" : "Регистрация"}</h2>
+            <p className="auth-subtitle">{twoFA ? "Введите код из Telegram бота" : isLogin ? "Войдите, чтобы продолжить подготовку" : "Создайте аккаунт за пару минут"}</p>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -375,7 +374,7 @@ const Auth = () => {
               <div className="form-group">
                 <input 
                     className="input-field" 
-                    style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: 'bold' }} 
+                    style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: '800', color: 'var(--primary)' }} 
                     placeholder="• • • • •" 
                     value={twoFACode} 
                     onChange={e => setTwoFACode(e.target.value)} 
@@ -392,10 +391,10 @@ const Auth = () => {
                     <div style={{display:'flex', gap:'12px'}}>
                       <div className="form-group" style={{flex:1}}>
                           <CustomSelect 
-                              options={schools}
-                              value={formData.school}
-                              onChange={(val) => setFormData({...formData, school: val})}
-                              placeholder="Выберите школу"
+                            options={schools}
+                            value={formData.school}
+                            onChange={(val) => setFormData({...formData, school: val})}
+                            placeholder="Школа"
                           />
                           <input type="hidden" name="school" value={formData.school} required />
                       </div>
