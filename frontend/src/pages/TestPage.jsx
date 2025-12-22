@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ProctoringSystem from "../components/ProctoringSystem"; 
-import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Clock, ShieldCheck, AlertTriangle, X as XIcon } from "lucide-react";
+import { CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Clock, ShieldCheck, AlertTriangle, X as XIcon, Camera } from "lucide-react";
 
-const MAX_VIOLATIONS = 5;
+// Лимит для визуального предупреждения (теперь не блокирует)
+const MAX_VIOLATIONS_WARNING = 5;
 
 const TestPage = () => {
   const { id } = useParams();
@@ -25,17 +26,19 @@ const TestPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(7200); 
   const [showModal, setShowModal] = useState(false);
+  
+  // --- КАМЕРА (НОВОЕ) ---
+  const [cameraPermission, setCameraPermission] = useState(false);
 
   // --- БЕЗОПАСНОСТЬ ---
   const [violationCount, setViolationCount] = useState(0);
   const [violationLog, setViolationLog] = useState([]);
-  const [isBlocked, setIsBlocked] = useState(false);
+  // isBlocked убрали из логики завершения, оставили только для критических ошибок API если нужно, но не для прокторинга
   const [showFlash, setShowFlash] = useState(false);
 
   // --- REFS ---
   const isFinishedRef = useRef(false);
   const isCooldownRef = useRef(false);
-  const isBlockedRef = useRef(false);
   const currentQuestionRef = useRef(currentQuestion);
   const questionsRef = useRef(questions);
   const userIdRef = useRef(localStorage.getItem("user_id"));
@@ -43,12 +46,33 @@ const TestPage = () => {
   useEffect(() => { currentQuestionRef.current = currentQuestion; }, [currentQuestion]);
   useEffect(() => { questionsRef.current = questions; }, [questions]);
   useEffect(() => { isFinishedRef.current = isFinished; }, [isFinished]);
-  useEffect(() => { isBlockedRef.current = isBlocked; }, [isBlocked]);
+
+  // ==========================================
+  // 0. ПРЕДВАРИТЕЛЬНЫЙ ЗАПРОС КАМЕРЫ (НОВОЕ)
+  // ==========================================
+  const requestCameraAccess = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Останавливаем поток сразу, нам нужно только разрешение
+      stream.getTracks().forEach(track => track.stop());
+      setCameraPermission(true);
+    } catch (error) {
+      console.error("Camera access denied:", error);
+      alert("Для прохождения теста необходим доступ к камере. Пожалуйста, разрешите доступ в браузере.");
+      setCameraPermission(false);
+    }
+  };
 
   // ==========================================
   // 1. ЛОГИКА СТАРТА
   // ==========================================
   const handleStartTest = async () => {
+    // Двойная проверка доступа к камере
+    if (!cameraPermission) {
+        await requestCameraAccess();
+        if (!cameraPermission) return;
+    }
+
     try {
       const rawUserId = localStorage.getItem("user_id");
       if (!rawUserId) { alert("Ошибка: Нет user_id"); return; }
@@ -67,7 +91,11 @@ const TestPage = () => {
       }
 
       setIsTestStarted(true);
-      document.documentElement.requestFullscreen().catch(() => {});
+      
+      // Вход в полноэкранный режим
+      document.documentElement.requestFullscreen().catch((e) => {
+          console.log("Fullscreen request failed", e);
+      });
 
     } catch (error) {
       console.error("Start error:", error);
@@ -76,10 +104,9 @@ const TestPage = () => {
   };
 
   // ==========================================
-  // 2. БЕЗОПАСНОСТЬ (ОПТИМИЗИРОВАНО)
+  // 2. БЕЗОПАСНОСТЬ (БЕЗ БЛОКИРОВКИ)
   // ==========================================
   
-  // Функция отправки вынесена отдельно, чтобы не пересоздавать её
   const sendLogToServer = async (violationData) => {
       try {
         await fetch('http://localhost:5000/api/audit/log', {
@@ -91,101 +118,100 @@ const TestPage = () => {
   };
 
   const addViolation = useCallback((reason, imageSrc = null) => {
-    // Проверки (остаются быстрыми)
-    if (isFinishedRef.current || isCooldownRef.current || isBlockedRef.current) return;
+    // Если тест закончен - не пишем
+    if (isFinishedRef.current || isCooldownRef.current) return;
 
-    // 1. МГНОВЕННАЯ БЛОКИРОВКА ПОВТОРОВ (Cooldown)
+    // Cooldown чтобы не спамило
     isCooldownRef.current = true;
-
-    // 2. МГНОВЕННОЕ ОБНОВЛЕНИЕ UI (Приоритет №1)
     setShowFlash(true);
     
-    // Формируем время сразу
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
-    // Обновляем логи и счетчик синхронно
+    // Обновляем логи
     setViolationLog(prev => [{ time, msg: reason, id: Date.now() }, ...prev]);
-    setViolationCount(prev => {
-      const newCount = prev + 1;
-      if (newCount >= MAX_VIOLATIONS) setIsBlocked(true);
-      return newCount;
-    });
+    
+    // Увеличиваем счетчик, но НЕ БЛОКИРУЕМ
+    setViolationCount(prev => prev + 1);
 
-    // 3. ОТЛОЖЕННАЯ ОТПРАВКА НА СЕРВЕР (Приоритет №2)
-    // Мы используем setTimeout(..., 0), чтобы выкинуть тяжелую обработку JSON и сети
-    // в конец очереди событий (Event Loop). Это позволяет React отрисовать UI ДО начала отправки.
+    // Отправка на сервер
     setTimeout(() => {
         const violationData = {
           event: "TEST_VIOLATION",
           user_id: userIdRef.current ? parseInt(userIdRef.current) : null,
           data: {
-                reason,
-                test_id: id,
-                snapshot: imageSrc // Теперь здесь будет имя файла, а не null
+               reason,
+               test_id: id,
+               snapshot: imageSrc 
              }
         };
         sendLogToServer(violationData);
     }, 0);
 
-    // 4. Сброс эффектов (сделал быстрее: 300мс вместо 500мс для ощущения скорости)
     setTimeout(() => setShowFlash(false), 300);
-    setTimeout(() => { isCooldownRef.current = false; }, 200); 
+    setTimeout(() => { isCooldownRef.current = false; }, 1000); // Чуть увеличил кулдаун, чтобы не мигало слишком часто
   }, [id]);
 
-  const triggerFatalBlock = useCallback((reason) => {
-    if (isFinishedRef.current || isBlockedRef.current) return;
+  // Функция для системных нарушений (F12, Alt-Tab и т.д.)
+  // Переименовал triggerFatalBlock -> handleSystemViolation
+  const handleSystemViolation = useCallback((reason) => {
+    if (isFinishedRef.current) return;
     
-    setIsBlocked(true);
-    
-    // Тоже отправляем асинхронно
-    setTimeout(() => {
-        sendLogToServer({
-            event: "TEST_VIOLATION",
-            user_id: userIdRef.current ? parseInt(userIdRef.current) : null,
-            data: { reason: `КРИТИЧЕСКОЕ: ${reason}`, test_id: id, snapshot: null }
-        });
-    }, 0);
+    // Мы больше НЕ ставим setIsBlocked(true)
+    // Просто добавляем нарушение как обычно
+    addViolation(`СИСТЕМНОЕ: ${reason}`);
 
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  }, [id]);
+    // Если вышли из полноэкранного режима, можно попробовать вернуть (опционально)
+    // но лучше просто залогировать.
+  }, [addViolation]);
   
   useEffect(() => {
-    if (!isTestStarted || isFinished || isBlocked) return;
+    if (!isTestStarted || isFinished) return;
 
     const handleFullScreenChange = () => {
-      if (!document.fullscreenElement && !isFinishedRef.current && !isBlockedRef.current) {
-         triggerFatalBlock("Выход из полноэкранного режима");
+      if (!document.fullscreenElement && !isFinishedRef.current) {
+         handleSystemViolation("Выход из полноэкранного режима");
       }
     };
 
     const handleKeyDown = (e) => {
       if (e.key === 'F12' || e.keyCode === 123) {
-        e.preventDefault(); triggerFatalBlock("Попытка открытия консоли (F12)");
+        e.preventDefault(); 
+        handleSystemViolation("Попытка открытия консоли (F12)");
       }
       if ((e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) || (e.ctrlKey && e.key.toUpperCase() === 'U')) {
-        e.preventDefault(); triggerFatalBlock("Инструменты разработчика");
+        e.preventDefault(); 
+        handleSystemViolation("Инструменты разработчика");
       }
+      // Блокировка Alt+Tab (насколько это возможно в браузере) - скорее всего просто потеря фокуса
+    };
+
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
+            handleSystemViolation("Переключение вкладки / Сворачивание");
+        }
     };
 
     const handleContextMenu = (e) => e.preventDefault();
 
     document.addEventListener('fullscreenchange', handleFullScreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [isTestStarted, isFinished, isBlocked, triggerFatalBlock]);
+  }, [isTestStarted, isFinished, handleSystemViolation]);
 
   // ==========================================
   // 3. ТАЙМЕР И ЗАГРУЗКА
   // ==========================================
   useEffect(() => {
     let timer;
-    if (isTestStarted && !isFinished && !isBlocked) {
+    if (isTestStarted && !isFinished) {
       timer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) { finishTest(); return 0; }
@@ -194,7 +220,7 @@ const TestPage = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isTestStarted, isFinished, isBlocked]);
+  }, [isTestStarted, isFinished]);
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/tests/${id}/questions`)
@@ -205,7 +231,7 @@ const TestPage = () => {
 
   useEffect(() => {
     const handleAnswerKey = (e) => {
-      if (!isTestStarted || isFinished || isBlocked || showModal) return;
+      if (!isTestStarted || isFinished || showModal) return;
       const num = parseInt(e.key);
       if (num >= 1 && num <= 4) {
         const q = questions[currentQuestion];
@@ -215,7 +241,7 @@ const TestPage = () => {
     };
     window.addEventListener("keydown", handleAnswerKey);
     return () => window.removeEventListener("keydown", handleAnswerKey);
-  }, [isTestStarted, currentQuestion, questions, showModal, isFinished, isBlocked]);
+  }, [isTestStarted, currentQuestion, questions, showModal, isFinished]);
 
   // ==========================================
   // 4. ЛОГИКА ТЕСТА
@@ -289,8 +315,8 @@ const TestPage = () => {
   // ==========================================
   if (isLoading) return <div style={s.loader}><div className="spinner" />Загрузка...</div>;
 
-  if (isFinished || isBlocked) {
-    if (isReviewMode && !isBlocked) {
+  if (isFinished) {
+    if (isReviewMode) {
       const qReview = questions[currentQuestion];
       const optsReview = qReview?.options || qReview?.choices || [];
       return (
@@ -333,9 +359,9 @@ const TestPage = () => {
     return (
       <div style={s.statusPage}>
         <div style={s.statusCard}>
-          <div style={{ fontSize: '80px', marginBottom: '20px' }}>{isBlocked ? "🔐" : "🏆"}</div>
-          <h1 style={s.statusTitle}>{isBlocked ? "Доступ закрыт" : "Тест завершен"}</h1>
-          {!isBlocked && testResults && (
+          <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</div>
+          <h1 style={s.statusTitle}>Тест завершен</h1>
+          {testResults && (
             <div style={{background: '#f8fafc', padding: '24px', borderRadius: '20px', margin: '24px 0'}}>
               <div style={{fontSize: '14px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase'}}>Результат</div>
               <div style={{fontSize: '56px', fontWeight: 900, color: '#4f46e5', lineHeight: 1}}>
@@ -343,9 +369,9 @@ const TestPage = () => {
               </div>
             </div>
           )}
-          <p style={s.statusText}>{isBlocked ? "Критические нарушения." : "Ответы проверены."}</p>
+          <p style={s.statusText}>Ответы проверены.</p>
           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-            {!isBlocked && <button style={s.btnPrimary} onClick={() => { setCurrentQuestion(0); setIsReviewMode(true); }}>Просмотреть ошибки</button>}
+            <button style={s.btnPrimary} onClick={() => { setCurrentQuestion(0); setIsReviewMode(true); }}>Просмотреть ошибки</button>
             <button style={s.btnSec} onClick={() => navigate("/dashboard")}>Вернуться в кабинет</button>
           </div>
         </div>
@@ -361,7 +387,6 @@ const TestPage = () => {
 
   return (
     <div style={s.page}>
-      {/* Ускоренная анимация вспышки */}
       {showFlash && <div style={s.flash} />}
 
       {showModal && (
@@ -380,20 +405,34 @@ const TestPage = () => {
       {!isTestStarted ? (
         <div style={s.startCenter}>
           <div style={s.startCard}>
-            <div style={s.badge}><ShieldCheck size={14} /> SECURE EXAM</div>
+            <div style={s.badge}><ShieldCheck size={14} /> SECURE TEST</div>
             <h1 style={s.mainTitle}>Вступительное тестирование</h1>
             <div style={s.rulesList}>
-               <div style={s.ruleItem}>• Не выходите из полноэкранного режима</div>
-               <div style={s.ruleItem}>• Не переключайте вкладки</div>
+               <div style={s.ruleItem}>• Тест на весь экран</div>
+               <div style={s.ruleItem}>• Ведется видеофиксация</div>
             </div>
-            <button style={s.btnStart} onClick={handleStartTest}>Начать</button>
+            
+            {/* ИЗМЕНЕНИЯ В КНОПКЕ СТАРТА: СНАЧАЛА КАМЕРА */}
+            {!cameraPermission ? (
+                <button 
+                    style={{...s.btnStart, background: '#4f46e5', display: 'flex', justifyContent: 'center', gap: '10px'}} 
+                    onClick={requestCameraAccess}
+                >
+                    <Camera size={24} /> Разрешить камеру
+                </button>
+            ) : (
+                <button style={s.btnStart} onClick={handleStartTest}>Начать тест</button>
+            )}
+            
+            {!cameraPermission && <p style={{marginTop: '15px', color: '#64748b', fontSize: '13px'}}>Нажмите, чтобы дать доступ перед стартом</p>}
+
           </div>
         </div>
       ) : (
         <div style={s.layout}>
           <div style={{...s.progressBar, width: `${progress}%`}} />
           <header style={s.header}>
-            <div style={s.logo}>QADAM <span style={{ color: '#94a3b8', fontWeight: 400 }}>PRO</span></div>
+            <div style={s.logo}>JANA <span style={{ color: '#94a3b8', fontWeight: 400 }}>TEST</span></div>
             <div style={s.timerBox}>
               <Clock size={18} color="#94a3b8" />
               <span style={s.timerText}>{new Date(timeLeft * 1000).toISOString().substr(11, 8)}</span>
@@ -426,12 +465,13 @@ const TestPage = () => {
 
             <aside style={s.side}>
               <div style={s.sidebarCamWrapper}>
+                 {/* Прокидываем sessionId только если тест начат */}
                  <ProctoringSystem isActive={true} onViolation={addViolation} sessionId={sessionId} />
               </div>
-              <div style={s.violBlock}>
-                <div style={s.violCount}>{violationCount} / {MAX_VIOLATIONS}</div>
+              <div style={{...s.violBlock, background: violationCount > MAX_VIOLATIONS_WARNING ? '#fef2f2' : '#f0fdf4', borderColor: violationCount > MAX_VIOLATIONS_WARNING ? '#fee2e2' : '#dcfce7'}}>
+                <div style={{...s.violCount, color: violationCount > MAX_VIOLATIONS_WARNING ? '#ef4444' : '#16a34a'}}>{violationCount}</div>
                 <div style={s.violLabel}>НАРУШЕНИЙ</div>
-                {violationCount >= 3 && <div style={s.violWarning}>Риск блокировки!</div>}
+                {violationCount >= MAX_VIOLATIONS_WARNING && <div style={s.violWarning}>Много нарушений! Результат под сомнением.</div>}
               </div>
               <div style={s.logs}>
                 <div style={s.logTitle}>ИСТОРИЯ</div>
@@ -456,7 +496,6 @@ const TestPage = () => {
 
 const s = {
   page: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, fontFamily: "'Inter', sans-serif", backgroundColor: '#f8fafc', overflow: 'hidden', color: '#0f172a' },
-  // Ускорил анимацию flash-in (было 0.5s -> теперь в CSS лучше поставить 0.2s, но здесь имитируем)
   flash: { position: 'fixed', inset: 0, zIndex: 10001, pointerEvents: 'none', border: '10px solid #ef4444', boxShadow: 'inset 0 0 150px rgba(239, 68, 68, 0.5)', animation: 'flash-in 0.3s ease-out' }, 
   loader: { height: '100vh', display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center', background: '#fff', color: '#6366f1', fontSize: '18px', fontWeight: 600 },
   startCenter: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'radial-gradient(circle at top left, #f1f5f9, #e2e8f0)' },
@@ -482,9 +521,9 @@ const s = {
   letterActive: { width: '40px', height: '40px', background: '#6366f1', color: 'white', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 700 },
   nav: { marginTop: '64px', display: 'flex', gap: '20px' },
   side: { width: '360px', borderLeft: '1px solid #f1f5f9', background: 'white', padding: '24px', display: 'flex', flexDirection: 'column' },
-  violBlock: { background: '#fff1f2', padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '24px', border: '1px solid #ffe4e6' },
-  violCount: { fontSize: '32px', fontWeight: 900, color: '#e11d48' },
-  violLabel: { fontSize: '10px', fontWeight: 800, color: '#fb7185', marginTop: '4px', letterSpacing: '0.05em' },
+  violBlock: { padding: '20px', borderRadius: '16px', textAlign: 'center', marginBottom: '24px', border: '1px solid' },
+  violCount: { fontSize: '32px', fontWeight: 900 },
+  violLabel: { fontSize: '10px', fontWeight: 800, marginTop: '4px', letterSpacing: '0.05em', opacity: 0.7 },
   violWarning: { marginTop: '8px', color: '#e11d48', fontSize: '12px', fontWeight: 600 },
   logs: { flex: 1, overflowY: 'auto' },
   logTitle: { fontWeight: 800, marginBottom: '16px', fontSize: '11px', color: '#94a3b8', letterSpacing: '0.1em' },
@@ -495,7 +534,17 @@ const s = {
   btnOff: { flex: 1, background: '#f1f5f9', color: '#cbd5e1', border: 'none', padding: '16px 32px', borderRadius: '16px', fontWeight: 700, cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
   btnStart: { background: '#1e293b', color: 'white', border: 'none', padding: '20px', borderRadius: '20px', fontWeight: 700, fontSize: '18px', cursor: 'pointer', width: '100%', marginTop: '20px' },
   btnFinish: { background: '#fff1f2', color: '#e11d48', border: 'none', padding: '12px 24px', borderRadius: '14px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' },
-  statusPage: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f1f5f9', padding: '20px' },
+  statusPage: { 
+    height: '100vh', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    background: '#f1f5f9', 
+    padding: '20px',
+    // --- ДОБАВИТЬ ЭТИ СТРОКИ ---
+    boxSizing: 'border-box', // Учитывает padding внутри высоты
+    overflow: 'hidden'       // Убирает любые полосы прокрутки
+  },
   statusCard: { background: 'white', padding: '60px', borderRadius: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', maxWidth: '500px' },
   statusTitle: { fontSize: '32px', fontWeight: 800, marginBottom: '16px', color: '#1e293b' },
   statusText: { color: '#64748b', marginBottom: '40px', lineHeight: 1.6, fontSize: '16px' },

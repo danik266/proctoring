@@ -30,7 +30,6 @@ const AdminPanel = () => {
 
   // АНАЛИТИКА STATE
   const [reportsData, setReportsData] = useState(null);
-  // 👇 Исправлено: default state включает type: 'all'
   const [filters, setFilters] = useState({ dateRange: 'week', schoolId: 'all', type: 'all' });
 
   // === UI STATE ===
@@ -62,12 +61,11 @@ const AdminPanel = () => {
       if (activeTab === 'sessions') setSessions(await fetcher(`/sessions?t=${time}`));
       if (activeTab === 'violations') setViolations(await fetcher(`/violations?t=${time}`));
 
-      // 👇 ИСПРАВЛЕННАЯ ЗАГРУЗКА АНАЛИТИКИ
       if (activeTab === 'analytics') {
           const queryParams = new URLSearchParams({
               dateRange: filters.dateRange,
               schoolId: filters.schoolId,
-              type: filters.type // Передаем тип теста (ENT, MODO...)
+              type: filters.type 
           }).toString();
 
           try {
@@ -191,7 +189,10 @@ const AdminPanel = () => {
                  <h1 style={styles.pageTitle}>{activeTab === 'analytics' ? 'Отчеты и Аналитика' : 'Панель управления'}</h1>
                  <p style={styles.pageSubtitle}>Система тестирования JANA TEST</p>
             </div>
-            <div style={styles.adminBadge}>Администратор</div>
+            <div style={styles.adminBadge}>
+                <div style={{width:8, height:8, borderRadius:'50%', background:'#10b981'}}></div>
+                Администратор
+            </div>
         </header>
 
         {renderContent()}
@@ -211,7 +212,7 @@ const AdminPanel = () => {
           <div style={styles.mediaOverlay} onClick={() => setMediaPreview(null)}>
               <div style={styles.mediaContainer} onClick={e => e.stopPropagation()}>
                   <div style={styles.mediaHeader}>
-                      <span style={{color:'white', fontWeight:600}}>{mediaPreview.type === 'video' ? '📹 Запись сессии' : '📸 Снимок нарушения'}</span>
+                      <span style={{color:'#0f172a', fontWeight:700}}>{mediaPreview.type === 'video' ? '📹 Запись сессии' : '📸 Снимок нарушения'}</span>
                       <button onClick={() => setMediaPreview(null)} style={styles.mediaCloseBtn}>✕</button>
                   </div>
                   <div style={styles.mediaContentWrapper}>
@@ -226,9 +227,8 @@ const AdminPanel = () => {
 
 // === TAB COMPONENTS ===
 
-// 👇 ПОЛНОСТЬЮ ОБНОВЛЕННАЯ ВКЛАДКА АНАЛИТИКИ
 const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
-    if (!data) return <div style={{color:'#94a3b8', padding:20}}>Загрузка аналитики...</div>;
+    if (!data) return <div style={{color:'#64748b', padding:20}}>Загрузка аналитики...</div>;
 
     const dateOptions = [
         { value: 'week', label: 'Последняя неделя' },
@@ -237,7 +237,6 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
         { value: 'year', label: 'Год' },
     ];
 
-    // 👇 ВМЕСТО ПРЕДМЕТОВ ТЕПЕРЬ ТИПЫ
     const typeOptions = [
         { value: 'all', label: 'Все типы' },
         { value: 'ENT', label: 'ЕНТ' },
@@ -250,22 +249,13 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
         ...schools.map(s => ({ value: s.id, label: s.name }))
     ];
 
-    // 👇 РАБОЧИЙ ЭКСПОРТ В CSV
     const handleExportExcel = () => {
         if (!data || !data.kpi) return alert("Нет данных для экспорта");
-        
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Метрика,Значение\n";
         csvContent += `Всего экзаменов,${data.kpi.totalExams}\n`;
         csvContent += `Средний балл,${data.kpi.avgScore}\n`;
-        csvContent += `Успеваемость (%),${data.kpi.passRate}\n`;
-        csvContent += `Индекс списывания (%),${data.kpi.cheatingIndex}\n\n`;
-        
-        csvContent += "Распределение баллов,Количество\n";
-        data.distribution.forEach(row => {
-            csvContent += `${row.range},${row.count}\n`;
-        });
-
+        csvContent += `Успеваемость (%),${data.kpi.passRate}\n\n`;
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -277,7 +267,6 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
 
     return (
         <div className="fade-in analytics-print-container">
-             {/* Стили для печати PDF */}
              <style>{`
                 @media print {
                     aside, header, .no-print { display: none !important; }
@@ -297,7 +286,6 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
                         <CustomSelect options={schoolOptions} value={filters.schoolId} onChange={v => setFilters({...filters, schoolId: v})} placeholder="Школа" />
                     </div>
                     <div style={{width: 200, zIndex: 28}}>
-                        {/* 👇 ВЫБОР ТИПА ЭКЗАМЕНА */}
                         <CustomSelect options={typeOptions} value={filters.type} onChange={v => setFilters({...filters, type: v})} placeholder="Тип экзамена" />
                     </div>
                 </div>
@@ -316,7 +304,7 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
 
             <div style={styles.gridTwo}>
                 <div style={styles.card} className="card">
-                    <h3 style={{...styles.cardTitle, color: 'inherit'}}>Распределение баллов</h3>
+                    <h3 style={styles.cardTitle}>Распределение баллов</h3>
                     <div style={styles.chartContainer}>
                         <div style={styles.barChart}>
                             {data.distribution.map((item, idx) => (
@@ -337,25 +325,25 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
                 </div>
 
                 <div style={styles.card} className="card">
-                    <h3 style={{...styles.cardTitle, color: 'inherit'}}>Трудные вопросы (Топ 5)</h3>
+                    <h3 style={styles.cardTitle}>Трудные вопросы (Топ 5)</h3>
                     <div style={{overflowY:'auto', maxHeight:250}}>
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    <th style={{...styles.th, color: '#64748b'}}>Вопрос</th>
-                                    <th style={{...styles.th, color: '#64748b', width: 80}}>Верно</th>
+                                    <th style={styles.th}>Вопрос</th>
+                                    <th style={{...styles.th, width: 80}}>Верно</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {data.difficultQuestions && data.difficultQuestions.length > 0 ? data.difficultQuestions.map(q => (
                                     <tr key={q.id}>
-                                        <td style={{...styles.td, color: 'inherit'}}>{q.text}</td>
-                                        <td style={{...styles.td, color: 'inherit'}}>
+                                        <td style={styles.td}>{q.text}</td>
+                                        <td style={styles.td}>
                                             <div style={{display:'flex', alignItems:'center', gap:10}}>
                                                 <div style={{flex:1, height:6, background:'#e2e8f0', borderRadius:3, overflow:'hidden', width:50}}>
                                                     <div style={{width:`${q.correctRate}%`, background: q.correctRate < 30 ? '#ef4444' : '#f59e0b', height:'100%'}}></div>
                                                 </div>
-                                                <span style={{fontSize:12, fontWeight:'bold'}}>{q.correctRate}%</span>
+                                                <span style={{fontSize:12, fontWeight:'bold', color: '#64748b'}}>{q.correctRate}%</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -373,17 +361,17 @@ const AnalyticsTab = ({ data, filters, setFilters, schools }) => {
             </div>
             
             <div style={{...styles.card, marginTop:24}} className="card">
-                <h3 style={{...styles.cardTitle, color: 'inherit'}}>Матрица ответов (Heatmap)</h3>
+                <h3 style={styles.cardTitle}>Матрица ответов (Heatmap)</h3>
                 <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
                     {data.heatmap && data.heatmap.length > 0 ? data.heatmap.map((h, i) => (
-                         <div key={i} title={`Вопрос ID:${h.q} | Верно: ${h.val}%`} style={{
-                             width: 36, height: 36, borderRadius: 6, display:'flex', alignItems:'center', justifyContent:'center',
-                             fontSize: 11, fontWeight: 'bold', color: 'rgba(255,255,255,0.9)',
+                          <div key={i} title={`Вопрос ID:${h.q} | Верно: ${h.val}%`} style={{
+                             width: 36, height: 36, borderRadius: 8, display:'flex', alignItems:'center', justifyContent:'center',
+                             fontSize: 12, fontWeight: '700', color: '#fff',
                              background: h.val > 70 ? '#10b981' : h.val > 40 ? '#f59e0b' : '#ef4444',
-                             opacity: 0.8, cursor:'pointer'
-                         }}>
-                             {i+1}
-                         </div>
+                             cursor:'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}>
+                              {i+1}
+                          </div>
                     )) : (
                         <div style={{color:'#64748b'}}>Нет данных для отображения</div>
                     )}
@@ -429,7 +417,7 @@ const DashboardTab = ({ stats, sessions, violations }) => (
                     {violations.map(v => (
                         <tr key={v.id}>
                             <td style={styles.td}>{v.user_name}</td>
-                            <td style={{...styles.td, color:'#f87171'}}>{v.data?.reason || v.event}</td>
+                            <td style={{...styles.td, color:'#ef4444', fontWeight:600}}>{v.data?.reason || v.event}</td>
                             <td style={styles.td}>{new Date(v.event_time).toLocaleTimeString()}</td>
                         </tr>
                     ))}
@@ -464,7 +452,7 @@ const UsersTab = ({ users, onDelete, onAdd }) => (
                         {users.map(u => (
                             <tr key={u.id}>
                                 <td style={styles.td}>{u.id}</td>
-                                <td style={{...styles.td, fontWeight:'bold'}}>{u.full_name}</td>
+                                <td style={{...styles.td, fontWeight:'600', color:'#0f172a'}}>{u.full_name}</td>
                                 <td style={styles.td}>{u.email}</td>
                                 <td style={styles.td}>
                                     <span style={u.role==='admin' ? styles.badgeAdmin : styles.badgeStudent}>
@@ -487,7 +475,7 @@ const UsersTab = ({ users, onDelete, onAdd }) => (
 const TestsTab = ({ tests, onDelete, onToggle, onEdit, onAdd }) => (
     <div className="fade-in">
         <div style={styles.toolbar}>
-            <div style={{color:'#94a3b8'}}>Всего тестов: {tests.length}</div>
+            <div style={{color:'#64748b'}}>Всего тестов: <b>{tests.length}</b></div>
             <button style={styles.addBtn} onClick={onAdd}>+ Создать тест</button>
         </div>
         <div style={styles.testsGrid}>
@@ -495,24 +483,24 @@ const TestsTab = ({ tests, onDelete, onToggle, onEdit, onAdd }) => (
                 <div key={t.id} style={styles.testCard}>
                     <div style={styles.testCardHeader}>
                         <span style={{...styles.typeBadge, 
-                            background: t.type==='ENT' ? '#6366f120' : '#10b98120', 
-                            color: t.type==='ENT' ? '#818cf8' : '#34d399'
+                            background: t.type==='ENT' ? '#eef2ff' : '#ecfdf5', 
+                            color: t.type==='ENT' ? '#6366f1' : '#10b981'
                         }}>{t.type}</span>
-                        <div style={{...styles.statusDot, background: t.published ? '#10b981' : '#64748b'}}></div>
+                        <div style={{...styles.statusDot, background: t.published ? '#10b981' : '#cbd5e1'}}></div>
                     </div>
                     <h3 style={styles.testCardTitle}>{t.name}</h3>
                     <p style={styles.testCardSubject}>{t.subject} • {t.duration_minutes} мин</p>
                     
                     <div style={styles.testCardActions}>
                         <button 
-                            style={{...styles.btnStatus, background: t.published ? '#10b98120' : '#47556920', color: t.published ? '#34d399' : '#94a3b8'}}
+                            style={{...styles.btnStatus, background: t.published ? '#f0fdf4' : '#f1f5f9', color: t.published ? '#15803d' : '#64748b'}}
                             onClick={()=>onToggle(t)}
                         >
                             {t.published ? 'Активен' : 'Скрыт'}
                         </button>
                         <div style={{display:'flex', gap:8}}>
                              <button style={styles.btnIconAction} onClick={()=>onEdit(t.id)} title="Редактировать">✏️</button>
-                             <button style={{...styles.btnIconAction, color:'#f87171', background:'#ef444420'}} onClick={()=>onDelete(t.id)} title="Удалить">🗑</button>
+                             <button style={{...styles.btnIconAction, color:'#ef4444', background:'#fef2f2'}} onClick={()=>onDelete(t.id)} title="Удалить">🗑</button>
                         </div>
                     </div>
                 </div>
@@ -542,8 +530,8 @@ const SessionsTab = ({ sessions, onVideo, onViewViolations }) => (
                             <tr key={s.id}>
                                 <td style={styles.td}>{s.id}</td>
                                 <td style={styles.td}>
-                                    <div style={{fontWeight:'bold'}}>{s.user_name}</div>
-                                    <div style={{fontSize:11, opacity:0.6}}>ID: {s.user_id}</div>
+                                    <div style={{fontWeight:'bold', color: '#0f172a'}}>{s.user_name}</div>
+                                    <div style={{fontSize:11, color:'#64748b'}}>ID: {s.user_id}</div>
                                 </td>
                                 <td style={styles.td}>{s.test_name}</td>
                                 <td style={styles.td}><span style={styles.scoreBadge}>{s.score}</span></td>
@@ -555,7 +543,7 @@ const SessionsTab = ({ sessions, onVideo, onViewViolations }) => (
                                 <td style={styles.td}>
                                     {parseInt(s.violations_count) > 0 ? (
                                         <button style={styles.violationBtn} onClick={onViewViolations}>⚠️ {s.violations_count}</button>
-                                    ) : <span style={{color:'#10b981'}}>Нет</span>}
+                                    ) : <span style={{color:'#10b981', fontWeight: 600}}>Нет</span>}
                                 </td>
                                 <td style={styles.td}>
                                     {s.end_time ? <StatusBadge status="completed"/> : <StatusBadge status="active"/>}
@@ -579,7 +567,7 @@ const ViolationsTab = ({ violations, onScreenshot }) => (
                         <tr key={v.id}>
                             <td style={styles.td}>{v.id}</td>
                             <td style={styles.td}>{v.user_name}</td>
-                            <td style={{...styles.td, color:'#f87171', fontWeight:'500'}}>{v.data?.reason || v.event}</td>
+                            <td style={{...styles.td, color:'#ef4444', fontWeight:'600'}}>{v.data?.reason || v.event}</td>
                             <td style={styles.td}>{new Date(v.event_time).toLocaleString()}</td>
                             <td style={styles.td}>
                                 {v.data?.snapshot ? (
@@ -606,11 +594,11 @@ const UserModal = ({ onClose, onSave, schools = [] }) => {
                 
                 <div style={styles.formGroup}>
                     <label style={styles.label}>ФИО</label>
-                    <input style={styles.input} onChange={e=>setForm({...form, full_name:e.target.value})} />
+                    <input style={styles.input} onChange={e=>setForm({...form, full_name:e.target.value})} placeholder="Имя Фамилия" />
                 </div>
                 <div style={styles.formGroup}>
                     <label style={styles.label}>Email</label>
-                    <input style={styles.input} onChange={e=>setForm({...form, email:e.target.value})} />
+                    <input style={styles.input} onChange={e=>setForm({...form, email:e.target.value})} placeholder="example@mail.com" />
                 </div>
                 <div style={styles.formGroup}>
                     <label style={styles.label}>Пароль</label>
@@ -710,7 +698,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
                     {qs.map((q, i) => (
                         <div key={i} style={styles.questionCard}>
                              <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
-                                 <div style={{fontWeight:'bold', color:'#94a3b8'}}>Вопрос {i+1}</div>
+                                 <div style={{fontWeight:'700', color:'#475569', fontSize:13}}>Вопрос {i+1}</div>
                                  <button onClick={()=>setQs(qs.filter((_,idx)=>idx!==i))} style={styles.btnLinkRed}>Удалить</button>
                              </div>
                              <div style={{display:'flex', gap:10, marginBottom:10}}>
@@ -742,7 +730,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
 // === HELPERS ===
 const StatCard = ({ title, value, subtitle, icon, color }) => (
   <div style={styles.statCard}>
-    <div style={{ ...styles.statIcon, background: `${color}20`, color }}>{icon}</div>
+    <div style={{ ...styles.statIcon, background: `${color}15`, color }}>{icon}</div>
     <div>
       <div style={styles.statValue}>{value}</div>
       <div style={styles.statTitle}>{title}</div>
@@ -753,14 +741,14 @@ const StatCard = ({ title, value, subtitle, icon, color }) => (
 
 const NavItem = ({ icon, label, active, onClick, collapsed, badge, badgeColor = "#6366f1" }) => (
   <div onClick={onClick} style={{...styles.navItem, ...(active ? styles.navItemActive : {})}}>
-    <div style={styles.navIcon}>{icon}</div>
+    <div style={{...styles.navIcon, color: active ? '#6366f1' : '#94a3b8'}}>{icon}</div>
     {!collapsed && <span style={styles.navLabel}>{label}</span>}
     {!collapsed && badge > 0 && <span style={{ ...styles.navBadge, background: badgeColor }}>{badge}</span>}
   </div>
 );
 
 const StatusBadge = ({ status }) => ( 
-    <span style={{...styles.badge, background: status==='completed' ? '#10b98120' : '#f59e0b20', color: status==='completed' ? '#10b981' : '#f59e0b'}}>
+    <span style={{...styles.badge, background: status==='completed' ? '#dcfce7' : '#fef3c7', color: status==='completed' ? '#166534' : '#b45309'}}>
         {status === 'completed' ? 'Завершен' : 'Активен'}
     </span> 
 );
@@ -776,100 +764,111 @@ const ViolationsIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fil
 // === GLOBAL & STYLES ===
 const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); min-height: 100vh; overflow-x: hidden; color: #e2e8f0; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --bg: #f8fafc;
+        --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); min-height: 100vh; overflow-x: hidden; color: var(--text-main); }
     .fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .custom-option:hover { background: rgba(99, 102, 241, 0.15) !important; color: white !important; }
+    .custom-option:hover { background: #eef2ff !important; color: var(--primary) !important; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); borderRadius: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    input::placeholder { color: #cbd5e1; }
   `}</style>
 );
 
 const styles = {
   container: { display: "flex", minHeight: "100vh" },
-  sidebar: { background: "rgba(15, 12, 41, 0.95)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "24px 16px", height: "100vh", position: "sticky", top: 0, transition: "width 0.3s ease", zIndex: 50 },
-  nav: { display: "flex", flexDirection: "column", gap: "6px" },
-  navItem: { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "12px", color: "#94a3b8", fontWeight: "600", fontSize: "14px", cursor: "pointer", transition: "all 0.2s" },
-  navItemActive: { background: "rgba(99, 102, 241, 0.15)", color: "#a5b4fc" },
+  sidebar: { background: "#ffffff", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "24px 16px", height: "100vh", position: "sticky", top: 0, transition: "width 0.3s ease", zIndex: 50, boxShadow: '2px 0 10px rgba(0,0,0,0.02)' },
+  logoArea: { padding: '0 10px 30px 10px', height: 40, display: 'flex', alignItems: 'center' },
+  logoText: { fontSize: 20, fontWeight: 800, color: '#6366f1', letterSpacing: -0.5 },
+  nav: { display: "flex", flexDirection: "column", gap: "4px" },
+  navItem: { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "12px", color: "#64748b", fontWeight: "600", fontSize: "14px", cursor: "pointer", transition: "all 0.2s" },
+  navItemActive: { background: "#eef2ff", color: "#6366f1" },
   navIcon: { display: "flex", alignItems: "center", justifyContent: "center", width: "24px" },
   navBadge: { marginLeft: "auto", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", color: "#fff" },
   sidebarBottom: { display: "flex", flexDirection: "column", gap: "10px" },
-  collapseBtn: { width: "100%", padding: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "10px", color: "#64748b", cursor: "pointer" },
-  logoutBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "10px", color: "#ef4444", fontWeight: "600", fontSize: "14px", cursor: "pointer", transition: "0.2s" },
-  divider: { height:1, background: 'rgba(255,255,255,0.05)', margin: '10px 0' },
-  main: { flexGrow: 1, padding: "32px 40px", overflowY: "auto" },
+  collapseBtn: { width: "100%", padding: "10px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: "10px", color: "#64748b", cursor: "pointer" },
+  logoutBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "12px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "10px", color: "#ef4444", fontWeight: "600", fontSize: "14px", cursor: "pointer", transition: "0.2s" },
+  divider: { height:1, background: '#e2e8f0', margin: '10px 0' },
+  main: { flexGrow: 1, padding: "32px 40px", overflowY: "auto", background: '#f8fafc' },
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" },
-  pageTitle: { fontSize: "28px", fontWeight: "800", color: "#fff", marginBottom: "6px" },
-  pageSubtitle: { color: "#94a3b8", fontSize: "15px" },
-  adminBadge: { background: "rgba(99, 102, 241, 0.1)", border: "1px solid rgba(99, 102, 241, 0.3)", padding: "8px 16px", borderRadius: "20px", color: "#a5b4fc", fontWeight: "600", fontSize: "13px" },
-  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginBottom: "30px" },
-  statCard: { background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "24px", display: "flex", alignItems: "center", gap: "20px" },
-  statIcon: { width: "52px", height: "52px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", fontSize:20 },
-  statValue: { fontSize: "28px", fontWeight: "800", color: "#fff" },
-  statTitle: { fontSize: "14px", color: "#94a3b8", marginTop: "2px" },
-  statSubtitle: { fontSize: "12px", color: "#64748b" },
-  card: { background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "24px", display:'flex', flexDirection:'column' },
-  cardTitle: { fontSize: "18px", fontWeight: "700", color: "#fff", marginBottom: "20px" },
+  pageTitle: { fontSize: "32px", fontWeight: "800", color: "#0f172a", marginBottom: "6px", letterSpacing: -1 },
+  pageSubtitle: { color: "#64748b", fontSize: "15px", fontWeight: 500 },
+  adminBadge: { background: "#ffffff", border: "1px solid #e2e8f0", padding: "8px 16px", borderRadius: "50px", color: "#0f172a", fontWeight: "600", fontSize: "13px", display:'flex', alignItems:'center', gap:8, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", marginBottom: "30px" },
+  statCard: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px", padding: "24px", display: "flex", alignItems: "center", gap: "20px", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)" },
+  statIcon: { width: "52px", height: "52px", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize:22 },
+  statValue: { fontSize: "28px", fontWeight: "800", color: "#0f172a" },
+  statTitle: { fontSize: "14px", color: "#64748b", marginTop: "2px", fontWeight: 600 },
+  statSubtitle: { fontSize: "12px", color: "#94a3b8" },
+  card: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px", padding: "24px", display:'flex', flexDirection:'column', boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)" },
+  cardTitle: { fontSize: "18px", fontWeight: "700", color: "#0f172a", marginBottom: "20px" },
   gridTwo: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))", gap: "24px" },
   tableContainer: { overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", padding: "14px 16px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.08)" },
-  td: { padding: "16px 16px", fontSize: "14px", color: "#e2e8f0", borderBottom: "1px solid rgba(255,255,255,0.03)" },
-  badge: { padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" },
-  badgeStudent: { background: 'rgba(99,102,241,0.15)', color:'#818cf8', padding:'4px 10px', borderRadius:6, fontSize:12, fontWeight:600 },
-  badgeAdmin: { background: 'rgba(168, 85, 247, 0.15)', color:'#c084fc', padding:'4px 10px', borderRadius:6, fontSize:12, fontWeight:600 },
-  scoreBadge: { background: '#1e293b', padding:'4px 10px', borderRadius:6, fontWeight:'bold', border:'1px solid #334155' },
+  th: { textAlign: "left", padding: "14px 16px", fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", borderBottom: "1px solid #e2e8f0" },
+  td: { padding: "16px 16px", fontSize: "14px", color: "#334155", borderBottom: "1px solid #f1f5f9", verticalAlign:'middle' },
+  badge: { padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" },
+  badgeStudent: { background: '#eef2ff', color:'#6366f1', padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:700 },
+  badgeAdmin: { background: '#f3e8ff', color:'#a855f7', padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:700 },
+  scoreBadge: { background: '#f1f5f9', color: '#0f172a', padding:'4px 10px', borderRadius:8, fontWeight:'700', border:'1px solid #e2e8f0' },
   toolbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" },
-  searchBox: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "12px 16px", color: "white", width: 300, outline:'none' },
-  addBtn: { background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", border: "none", borderRadius: "10px", padding: "10px 20px", color: "#fff", fontWeight: "600", cursor: "pointer", boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)" },
+  searchBox: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "12px 16px", color: "#0f172a", width: 300, outline:'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+  addBtn: { background: "var(--primary)", border: "none", borderRadius: "14px", padding: "12px 24px", color: "#fff", fontWeight: "600", cursor: "pointer", boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)", fontSize: 14, transition: '0.2s' },
   filterBar: { display: 'flex', justifyContent: 'space-between', marginBottom: 20, flexWrap:'wrap', gap:10 },
-  filterSelect: { background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', color: 'white', padding: '10px 14px', borderRadius: 8, outline: 'none', cursor:'pointer' },
-  btnExport: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, transition:'0.2s', fontSize:13 },
-  btnExportOutline: { background: 'transparent', border: '1px dashed rgba(255,255,255,0.2)', color: '#64748b', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize:13 },
+  btnExport: { background: '#fff', border: '1px solid #e2e8f0', color: '#64748b', padding: '10px 18px', borderRadius: 10, cursor: 'pointer', fontWeight: 600, transition:'0.2s', fontSize:13, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+  btnExportOutline: { background: 'transparent', border: '1px dashed #cbd5e1', color: '#64748b', padding: '10px 18px', borderRadius: 10, cursor: 'pointer', fontSize:13 },
   chartContainer: { height: 250, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '20px 0' },
   barChart: { display: 'flex', gap: 40, alignItems: 'flex-end', height: '100%' },
   barColumn: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, height:'100%', justifyContent:'flex-end' },
   bar: { width: 50, borderRadius: '8px 8px 0 0', position: 'relative', transition: 'height 0.5s ease', cursor:'pointer' },
   barLabel: { fontSize: 12, color: '#94a3b8', fontWeight: 'bold' },
-  barTooltip: { position: 'absolute', top: -25, left: '50%', transform: 'translateX(-50%)', background: '#1e293b', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 'bold', whiteSpace:'nowrap' },
-  testsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" },
-  testCard: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "24px" },
+  barTooltip: { position: 'absolute', top: -25, left: '50%', transform: 'translateX(-50%)', background: '#0f172a', color: 'white', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 'bold', whiteSpace:'nowrap' },
+  testsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" },
+  testCard: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px", padding: "24px", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", display:'flex', flexDirection:'column' },
   testCardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" },
-  typeBadge: { padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "800" },
-  statusDot: { width: "8px", height: "8px", borderRadius: "50%" },
-  testCardTitle: { fontSize: "18px", fontWeight: "700", color: "#fff", marginBottom: "4px" },
-  testCardSubject: { fontSize: "13px", color: "#94a3b8", marginBottom: "20px" },
+  typeBadge: { padding: "6px 12px", borderRadius: "20px", fontSize: "11px", fontWeight: "800", letterSpacing: 0.5 },
+  statusDot: { width: "10px", height: "10px", borderRadius: "50%" },
+  testCardTitle: { fontSize: "18px", fontWeight: "800", color: "#0f172a", marginBottom: "4px" },
+  testCardSubject: { fontSize: "13px", color: "#64748b", marginBottom: "24px", fontWeight: 500 },
   testCardActions: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" },
-  btnStatus: { padding: "8px 16px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: "600", cursor: "pointer", flex: 1, marginRight: 10 },
-  btnIconAction: { background: "rgba(255,255,255,0.05)", border: "none", borderRadius: "8px", width: 34, height: 34, color: "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.2s" },
-  btnPrimary: { background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", border: "none", borderRadius: "10px", padding: "10px 20px", color: "#fff", fontWeight: "600", cursor: "pointer" },
-  btnSecondary: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "10px 20px", color: "#e2e8f0", fontWeight: "600", cursor: "pointer" },
-  btnPrimaryOutline: { background: "rgba(99, 102, 241, 0.1)", border: "1px solid rgba(99, 102, 241, 0.3)", borderRadius: "8px", padding: "8px 16px", color: "#a5b4fc", cursor: "pointer", fontSize: 13 },
-  btnLink: { background: 'none', border:'none', color:'#6366f1', cursor:'pointer', fontSize:13, fontWeight:'600'},
-  btnLinkRed: { background: 'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:13 },
-  iconBtnDel: { background: "rgba(239, 68, 68, 0.15)", border: "none", borderRadius: "8px", width:30, height:30, color: "#f87171", cursor: "pointer", display:'flex', alignItems:'center', justifyContent:'center' },
-  violationBtn: { background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "6px", padding: "4px 8px", color: "#f87171", fontWeight:'bold', fontSize:12, cursor:'pointer' },
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  modal: { background: "#1e1b4b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "24px", padding: "32px", width: "450px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" },
-  modalTitle: { fontSize: "22px", fontWeight: "700", color: "#fff", marginBottom: "24px" },
+  btnStatus: { padding: "8px 16px", borderRadius: "10px", border: "none", fontSize: "13px", fontWeight: "600", cursor: "pointer", flex: 1, marginRight: 10 },
+  btnIconAction: { background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", width: 36, height: 36, color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.2s" },
+  btnPrimary: { background: "var(--primary)", border: "none", borderRadius: "12px", padding: "10px 24px", color: "#fff", fontWeight: "600", cursor: "pointer", fontSize: 14 },
+  btnSecondary: { background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "10px 24px", color: "#0f172a", fontWeight: "600", cursor: "pointer", fontSize: 14 },
+  btnPrimaryOutline: { background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "8px", padding: "6px 14px", color: "#6366f1", cursor: "pointer", fontSize: 13, fontWeight: 600 },
+  btnLink: { background: 'none', border:'none', color:'#6366f1', cursor:'pointer', fontSize:13, fontWeight:'700'},
+  btnLinkRed: { background: 'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:13, fontWeight: 600 },
+  iconBtnDel: { background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "8px", width:32, height:32, color: "#ef4444", cursor: "pointer", display:'flex', alignItems:'center', justifyContent:'center' },
+  violationBtn: { background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", padding: "4px 10px", color: "#ef4444", fontWeight:'700', fontSize:12, cursor:'pointer' },
+  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
+  modal: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px", padding: "32px", width: "450px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" },
+  modalTitle: { fontSize: "24px", fontWeight: "800", color: "#0f172a", marginBottom: "24px", letterSpacing: -0.5 },
   modalFooter: { display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: 24 },
   formGroup: { marginBottom: "16px" },
-  label: { display: "block", fontSize: "13px", color: "#94a3b8", marginBottom: "8px", fontWeight: "600" },
-  input: { width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "12px", color: "#fff", fontSize: "14px", outline: "none" },
-  select: { width: "100%", background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "12px", color: "#fff", fontSize: "14px", outline: "none" },
-  questionCard: { background: "rgba(0,0,0,0.2)", padding: 20, borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)", marginBottom: 15 },
+  label: { display: "block", fontSize: "13px", color: "#64748b", marginBottom: "8px", fontWeight: "600" },
+  input: { width: "100%", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "12px", color: "#0f172a", fontSize: "14px", outline: "none", transition: '0.2s' },
+  select: { width: "100%", background: "#fff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "12px", color: "#0f172a", fontSize: "14px", outline: "none" },
+  questionCard: { background: "#f8fafc", padding: 20, borderRadius: 16, border: "1px solid #e2e8f0", marginBottom: 15 },
   optionRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
-  btnAddDashed: { width: '100%', padding: 12, border: '1px dashed rgba(255,255,255,0.2)', background: 'transparent', color: '#94a3b8', borderRadius: 10, cursor: 'pointer', marginTop: 10 },
-  toast: { position: 'fixed', bottom: 30, right: 30, background: '#1e293b', border: '1px solid #334155', padding: '15px 20px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 9999, animation: 'slideIn 0.3s ease-out' },
-  mediaOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.9)", backdropFilter: "blur(12px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100 },
-  mediaContainer: { width: '90%', maxWidth: '1000px', background: '#0f0c29', border: '1px solid #334155', borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  mediaHeader: { padding: '16px 24px', background: 'rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' },
-  mediaCloseBtn: { background: 'none', border: 'none', color: '#94a3b8', fontSize: 24, cursor: 'pointer' },
-  mediaContentWrapper: { padding: 40, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'black', minHeight: 400 },
-  mediaContent: { maxWidth: '100%', maxHeight: '70vh', borderRadius: 12, boxShadow: '0 0 30px rgba(0,0,0,0.5)' }
+  btnAddDashed: { width: '100%', padding: 12, border: '2px dashed #cbd5e1', background: 'transparent', color: '#64748b', borderRadius: 12, cursor: 'pointer', marginTop: 10, fontWeight: 600, fontSize: 13 },
+  toast: { position: 'fixed', bottom: 30, right: 30, background: '#ffffff', border: '1px solid #e2e8f0', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', zIndex: 9999, animation: 'slideIn 0.3s ease-out' },
+  mediaOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.8)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1100 },
+  mediaContainer: { width: '90%', maxWidth: '1000px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' },
+  mediaHeader: { padding: '16px 24px', background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0' },
+  mediaCloseBtn: { background: '#f1f5f9', width: 32, height: 32, borderRadius: 8, border: 'none', color: '#64748b', fontSize: 16, cursor: 'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
+  mediaContentWrapper: { padding: 40, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', minHeight: 400 },
+  mediaContent: { maxWidth: '100%', maxHeight: '70vh', borderRadius: 12, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }
 };
 
 const CustomSelect = ({ options, value, onChange, placeholder }) => {
@@ -894,14 +893,14 @@ const CustomSelect = ({ options, value, onChange, placeholder }) => {
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center',
-                    borderColor: isOpen ? '#6366f1' : 'rgba(255,255,255,0.1)',
-                    background: isOpen ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)'
+                    borderColor: isOpen ? '#6366f1' : '#cbd5e1',
+                    background: '#fff'
                 }}
             >
-                <span style={{color: selectedOption ? 'white' : '#94a3b8', fontSize:13, fontWeight:500}}>
+                <span style={{color: selectedOption ? '#0f172a' : '#94a3b8', fontSize:14, fontWeight:500}}>
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
-                <span style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s', fontSize: 10, opacity: 0.7, color:'#94a3b8'}}>
+                <span style={{transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s', fontSize: 10, opacity: 0.7, color:'#64748b'}}>
                     ▼
                 </span>
             </div>
@@ -912,13 +911,13 @@ const CustomSelect = ({ options, value, onChange, placeholder }) => {
                     top: '110%',
                     left: 0,
                     right: 0,
-                    background: '#1e293b',
-                    border: '1px solid #334155',
-                    borderRadius: 10,
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
                     maxHeight: 250,
                     overflowY: 'auto',
                     zIndex: 1000,
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
                     padding: 4
                 }}>
                     {options.length > 0 ? options.map(opt => (
@@ -929,18 +928,18 @@ const CustomSelect = ({ options, value, onChange, placeholder }) => {
                             style={{
                                 padding: '10px 12px',
                                 cursor: 'pointer',
-                                fontSize: 13,
-                                color: String(value) === String(opt.value) ? '#818cf8' : '#e2e8f0',
-                                borderRadius: 6,
+                                fontSize: 14,
+                                color: String(value) === String(opt.value) ? '#6366f1' : '#334155',
+                                borderRadius: 8,
                                 marginBottom: 2,
-                                fontWeight: String(value) === String(opt.value) ? 600 : 400,
-                                background: String(value) === String(opt.value) ? 'rgba(99,102,241,0.1)' : 'transparent'
+                                fontWeight: String(value) === String(opt.value) ? 600 : 500,
+                                background: String(value) === String(opt.value) ? '#eef2ff' : 'transparent'
                             }}
                         >
                             {opt.label}
                         </div>
                     )) : (
-                        <div style={{padding: 10, color:'#64748b', textAlign:'center', fontSize:13}}>Нет данных</div>
+                        <div style={{padding: 10, color:'#94a3b8', textAlign:'center', fontSize:13}}>Нет данных</div>
                     )}
                 </div>
             )}
