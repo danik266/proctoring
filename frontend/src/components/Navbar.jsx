@@ -53,10 +53,40 @@ const Navbar = () => {
       {/* СТИЛИ ОСТАЮТСЯ ТЕМИ ЖЕ, Я ИХ СКРЫЛ ДЛЯ КРАТКОСТИ, НО ОНИ НУЖНЫ */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+<<<<<<< HEAD
         .nav-btn { transition: all 0.2s ease; font-family: 'Plus Jakarta Sans', sans-serif; }
         .nav-btn:hover { color: #6366f1 !important; background: #eef2ff !important; }
         .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4) !important; background: #4f46e5 !important; }
         .logout-btn:hover { background: #fef2f2 !important; border-color: #ef4444 !important; color: #dc2626 !important; transform: translateY(-1px); }
+=======
+        
+        /* Анимация ссылок меню */
+        .nav-btn { 
+            transition: all 0.2s ease; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .nav-btn:hover { 
+            color: #6366f1 !important; 
+            background: #eef2ff !important;
+        }
+        
+        /* Кнопка Войти */
+        .login-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4) !important; 
+            background: #4f46e5 !important;
+        }
+        
+        /* Кнопка Выйти */
+        .logout-btn:hover { 
+            background: #8f91f5ff !important; 
+            border-color: #8f91f5ff !important; 
+            color: #fff !important;
+            transform: translateY(-1px);
+        }
+        
+        /* Логотип */
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         .logo-container:hover .logo-icon { transform: rotate(10deg); }
         .lang-btn { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s ease; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #475569; font-size: 14px; }
         .lang-btn:hover, .lang-btn.open { background: #f1f5f9; color: #0f172a; }
@@ -242,14 +272,14 @@ const navStyles = {
     transition: "all 0.2s ease",
     marginLeft: "6px",
   },
-  logout: {
-    padding: "9px 20px",
-    borderRadius: "10px",
-    border: "1px solid #fee2e2",
-    color: "#ef4444",
-    background: "#fff",
-    fontWeight: "600",
-    fontSize: "14px",
+  logout: { 
+    padding: "9px 20px", 
+    borderRadius: "10px", 
+    border: "1px solid #6366f1", 
+    color: "#fff", 
+    background: "#6366f1", 
+    fontWeight: "600", 
+    fontSize: "14px", 
     cursor: "pointer",
     transition: "all 0.2s ease",
     marginLeft: "6px",

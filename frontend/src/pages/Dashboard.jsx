@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
+<<<<<<< HEAD
 // ИМПОРТ ХУКА ЯЗЫКА
 import { useLanguage } from "../context/LanguageContext";
 
+=======
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
 import EntPage from "./Ent";
 import ModoPage from "./Modo";
 import PisaPage from "./Pisa";
-
 const Dashboard = () => {
   // Подключаем перевод
   const { t, language } = useLanguage();
@@ -15,11 +17,14 @@ const Dashboard = () => {
   const [data, setData] = useState({ user: null, tests: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
+<<<<<<< HEAD
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+=======
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Для сворачивания меню
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
   const navigate = useNavigate();
   const userId = localStorage.getItem("user_id") || 1;
-
   // --- ЛОГИКА ЗАГРУЗКИ ---
   useEffect(() => {
     fetch(`http://localhost:5000/api/dashboard/${userId}`)
@@ -31,6 +36,7 @@ const Dashboard = () => {
       .catch((err) => {
         console.error("Ошибка загрузки данных:", err);
         setIsLoading(false);
+<<<<<<< HEAD
         toast.error(t("toast_load_err"), {
           style: { background: "#334155", color: "#fff" },
         });
@@ -54,8 +60,25 @@ const Dashboard = () => {
 
     const loadingToast = toast.loading(t("toast_prep"), {
       style: { background: "#1e293b", color: "#fff" },
+=======
+        toast.error("Не удалось загрузить данные дашборда", {
+           style: { background: '#f9fafb', color: '#111827' }
+        });
+      });
+  }, []);
+  // --- ЛОГИКА СТАРТА ТЕСТА ---
+  const handleStartTest = async (testId, isFinished) => {
+    if (isFinished) {
+      toast("Тест уже сдан. Результат на карточке!", {
+        icon: '✅',
+        style: { borderRadius: '10px', background: 'rgba(240, 253, 244, 0.8)', color: '#065f46', border: '1px solid #059669' },
+      });
+      return;
+    }
+    const loadingToast = toast.loading("Подготовка теста...", {
+        style: { background: '#f9fafb', color: '#111827' }
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
     });
-
     try {
       const response = await fetch("http://localhost:5000/api/tests/start", {
         method: "POST",
@@ -63,18 +86,29 @@ const Dashboard = () => {
         body: JSON.stringify({ user_id: userId, test_id: testId }),
       });
       const result = await response.json();
+<<<<<<< HEAD
 
+=======
+     
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
       toast.dismiss(loadingToast);
-
       if ((response.ok || result.sessionId) && !result.error) {
         const sessId = result.sessionId || result.session_id;
         localStorage.setItem("current_session_id", sessId);
         localStorage.setItem("current_test_id", testId);
+<<<<<<< HEAD
 
         toast.success(t("toast_started"), {
           style: { background: "#1e293b", color: "#fff" },
         });
 
+=======
+       
+        toast.success("Тест запущен! Удачи 🚀", {
+            style: { background: '#f9fafb', color: '#111827' }
+        });
+       
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         setTimeout(() => {
           navigate(`/test/${testId}`);
         }, 500);
@@ -87,11 +121,11 @@ const Dashboard = () => {
       toast.error(t("toast_err_connect"));
     }
   };
-
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
+<<<<<<< HEAD
 
   // Форматирование даты в зависимости от языка
   const getLocaleDate = () => {
@@ -107,6 +141,8 @@ const Dashboard = () => {
     });
   };
 
+=======
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
   // --- РЕНДЕР ЗАГРУЗКИ ---
   if (isLoading) {
     return (
@@ -118,11 +154,9 @@ const Dashboard = () => {
       </div>
     );
   }
-
   const { user, tests } = data;
   const userName = user?.full_name || "Guest";
   const userFirstName = userName.split(" ")[0];
-
   // --- РЕНДЕР КОНТЕНТА ---
   const renderContent = () => {
     switch (activeTab) {
@@ -132,17 +166,21 @@ const Dashboard = () => {
         return <ModoPage tests={tests} onStart={handleStartTest} />;
       case "pisa":
         return <PisaPage tests={tests} onStart={handleStartTest} />;
+<<<<<<< HEAD
 
+=======
+     
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
       case "my_tests":
         // --- ЛОГИКА ФИЛЬТРАЦИИ ---
         const allStarted = tests ? tests.filter((t) => t.start_time) : [];
-
         const isCategory = (test, keywords) => {
           const searchStr = `${test.name || ""} ${test.subject || ""} ${
             test.category || ""
           } ${test.type || ""}`.toLowerCase();
           return keywords.some((word) => searchStr.includes(word));
         };
+<<<<<<< HEAD
 
         const entTests = allStarted.filter((t) =>
           isCategory(t, ["ент", "ent", "ұбт"])
@@ -165,6 +203,17 @@ const Dashboard = () => {
             !pisaIds.includes(t.id)
         );
 
+=======
+        const entTests = allStarted.filter(t => isCategory(t, ['ент', 'ent']));
+        const modoTests = allStarted.filter(t => isCategory(t, ['модо', 'modo']));
+        const pisaTests = allStarted.filter(t => isCategory(t, ['pisa', 'пиза']));
+       
+        const entIds = entTests.map(t => t.id);
+        const modoIds = modoTests.map(t => t.id);
+        const pisaIds = pisaTests.map(t => t.id);
+       
+        const otherTests = allStarted.filter(t => !entIds.includes(t.id) && !modoIds.includes(t.id) && !pisaIds.includes(t.id));
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         const renderTestSection = (title, list, icon, gradient) => {
           if (list.length === 0) return null;
           return (
@@ -199,13 +248,13 @@ const Dashboard = () => {
             </div>
           );
         };
-
         return (
           <div className="fade-in">
             <div style={styles.sectionHeader}>
               <h3 style={styles.sectionTitle}>{t("hist_title")}</h3>
               <p style={styles.sectionSubtitle}>{t("hist_sub")}</p>
             </div>
+<<<<<<< HEAD
 
             {allStarted.length > 0 ? (
               <>
@@ -234,6 +283,16 @@ const Dashboard = () => {
                   "linear-gradient(135deg, #64748b 0%, #94a3b8 100%)"
                 )}
               </>
+=======
+           
+            {allStarted.length > 0 ? (
+                <>
+                  {renderTestSection("ЕНТ", entTests, "🎓", "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)")}
+                  {renderTestSection("МОДО", modoTests, "📊", "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)")}
+                  {renderTestSection("PISA", pisaTests, "🌍", "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)")}
+                  {renderTestSection("Другие тесты", otherTests, "📁", "linear-gradient(135deg, #64748b 0%, #94a3b8 100%)")}
+                </>
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
             ) : (
               <div style={styles.emptyState}>
                 <div style={styles.emptyIcon}>📝</div>
@@ -249,7 +308,6 @@ const Dashboard = () => {
             )}
           </div>
         );
-
       default: // HOME
         return (
           <div className="fade-in">
@@ -296,7 +354,6 @@ const Dashboard = () => {
                 <div style={styles.heroEmoji}>🚀</div>
               </div>
             </div>
-
             {/* CATEGORIES */}
             <div style={styles.sectionHeader}>
               <h3 style={styles.sectionTitle}>{t("cat_select")}</h3>
@@ -307,7 +364,7 @@ const Dashboard = () => {
                 title="ENT"
                 description={t("cat_ent_desc")}
                 icon="🎓"
-                gradient="linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+                gradient="linear-gradient(135deg, #6366f1 0%, #818cf8 100%)"
                 onClick={() => setActiveTab("ent")}
               />
               <CategoryCard
@@ -325,9 +382,9 @@ const Dashboard = () => {
                 onClick={() => setActiveTab("pisa")}
               />
             </div>
-
             {/* QUICK STATS */}
             <div style={styles.quickStats}>
+<<<<<<< HEAD
               <QuickStat
                 count={tests?.filter((t) => t.end_time).length || 0}
                 label={t("stat_finished")}
@@ -363,15 +420,35 @@ const Dashboard = () => {
                   </>
                 }
               />
+=======
+               <QuickStat
+                  count={tests?.filter(t => t.end_time).length || 0}
+                  label="Завершено"
+                  color="#6366f1"
+                  icon={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>}
+               />
+               <QuickStat
+                  count={tests?.filter(t => t.start_time && !t.end_time).length || 0}
+                  label="В процессе"
+                  color="#10b981"
+                  icon={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
+               />
+               <QuickStat
+                  count={tests?.filter(t => !t.start_time).length || 0}
+                  label="Ожидает"
+                  color="#f59e0b"
+                  icon={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>}
+               />
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
             </div>
           </div>
         );
     }
   };
-
   return (
     <div style={styles.container}>
       <GlobalStyles />
+<<<<<<< HEAD
       <Toaster
         position="top-center"
         toastOptions={{
@@ -382,6 +459,20 @@ const Dashboard = () => {
             fontFamily: "'Inter', sans-serif",
             border: "1px solid rgba(255,255,255,0.1)",
           },
+=======
+     
+      {/* TOASTER с темной темой */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+            style: {
+                background: 'rgba(249, 250, 251, 0.9)',
+                backdropFilter: 'blur(10px)',
+                color: '#111827',
+                fontFamily: "'Inter', sans-serif",
+                border: '1px solid rgba(0,0,0,0.1)',
+            }
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         }}
       />
       <aside
@@ -432,12 +523,12 @@ const Dashboard = () => {
               onClick={() => setActiveTab("my_tests")}
               collapsed={sidebarCollapsed}
             />
-
             <div style={styles.divider}>
               {!sidebarCollapsed && (
                 <span style={styles.dividerText}>{t("section_exams")}</span>
               )}
             </div>
+<<<<<<< HEAD
 
             <NavItem
               icon={<span style={{ fontSize: "18px" }}>🎓</span>}
@@ -464,6 +555,13 @@ const Dashboard = () => {
             {(user?.role === "admin" ||
               user?.role === "superadmin" ||
               localStorage.getItem("userRole") === "admin") && (
+=======
+            <NavItem icon={<span style={{fontSize: '18px'}}>🎓</span>} label="ЕНТ" active={activeTab === "ent"} onClick={() => setActiveTab("ent")} collapsed={sidebarCollapsed} />
+            <NavItem icon={<span style={{fontSize: '18px'}}>📊</span>} label="МОДО" active={activeTab === "modo"} onClick={() => setActiveTab("modo")} collapsed={sidebarCollapsed} />
+            <NavItem icon={<span style={{fontSize: '18px'}}>🌍</span>} label="PISA" active={activeTab === "pisa"} onClick={() => setActiveTab("pisa")} collapsed={sidebarCollapsed} />
+            {/* 👇 АДМИН ПАНЕЛЬ (ВСТАВЛЕНО СЮДА) */}
+            {(user?.role === "admin" || user?.role === "superadmin" || localStorage.getItem("userRole") === "admin") && (
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
               <>
                 <div style={styles.divider}>
                   {!sidebarCollapsed && (
@@ -492,7 +590,11 @@ const Dashboard = () => {
             )}
           </nav>
         </div>
+<<<<<<< HEAD
 
+=======
+        {/* User Card */}
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         <div style={styles.sidebarBottom}>
           <button
             style={styles.collapseBtn}
@@ -512,7 +614,6 @@ const Dashboard = () => {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-
           <div style={styles.userCard}>
             <div style={styles.avatar}>{userName[0] || "?"}</div>
             {!sidebarCollapsed && (
@@ -522,7 +623,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-
           <button style={styles.logoutBtn} onClick={handleLogout}>
             <svg
               width="20"
@@ -540,7 +640,11 @@ const Dashboard = () => {
           </button>
         </div>
       </aside>
+<<<<<<< HEAD
 
+=======
+      {/* MAIN CONTENT */}
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
       <main style={styles.main}>
         <header style={styles.header}>
           <div>
@@ -574,7 +678,6 @@ const Dashboard = () => {
             </div>
           </div>
         </header>
-
         {renderContent()}
       </main>
     </div>
@@ -585,21 +688,27 @@ const Dashboard = () => {
 const TestCard = ({ test, onStart, t }) => {
   const isFinished = !!test.end_time;
   const isStarted = !!test.start_time && !test.end_time;
+<<<<<<< HEAD
 
   const score = test.score || 0;
   const total = test.total_questions || test.max_score || 20;
+=======
+  // Логика подсчета
+  const score = test.score || 0;
+  const total = test.total_questions || test.max_score || 20;
+  // Защита от деления на ноль
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
-
   const getScoreColor = () => {
     if (percentage >= 85) return "#10b981";
     if (percentage >= 50) return "#f59e0b";
     return "#ef4444";
   };
-
   return (
     <div className="test-card" style={styles.card}>
       <div style={styles.cardHeader}>
         <div style={styles.cardIcon}>📚</div>
+<<<<<<< HEAD
         <div
           style={{
             ...styles.statusBadge,
@@ -642,6 +751,42 @@ const TestCard = ({ test, onStart, t }) => {
                 {" "}
                 / {total} {t("card_score")}
               </span>
+=======
+        <div style={{
+          ...styles.statusBadge,
+          background: isFinished ? 'rgba(240, 253, 244, 0.5)' : isStarted ? 'rgba(254, 243, 199, 0.5)' : 'rgba(238, 242, 255, 0.5)',
+          color: isFinished ? '#047857' : isStarted ? '#b45309' : '#4338ca',
+        }}>
+          {isFinished ? "Сдано" : isStarted ? "В процессе" : "Ожидает"}
+        </div>
+      </div>
+     
+      <h4 style={styles.cardTitle}>{test.name}</h4>
+      <p style={styles.cardSubject}>{test.subject}</p>
+      {/* БЛОК РЕЗУЛЬТАТОВ */}
+      {isFinished && (
+         <div style={styles.resultContainer}>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                marginBottom: '8px'
+            }}>
+                <div style={{fontSize: '13px', color: '#6b7280'}}>
+                    <span style={{color: '#111827', fontWeight: '700', fontSize: '15px'}}>
+                        {score}
+                    </span>
+                    <span style={{opacity: 0.7}}> / {total} баллов</span>
+                </div>
+                <div style={{
+                    color: getScoreColor(),
+                    fontWeight: '800',
+                    fontSize: '16px',
+                    textShadow: `0 0 15px ${getScoreColor()}40`
+                }}>
+                    {percentage}%
+                </div>
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
             </div>
             <div
               style={{
@@ -666,6 +811,7 @@ const TestCard = ({ test, onStart, t }) => {
           </div>
         </div>
       )}
+<<<<<<< HEAD
 
       <button
         onClick={() => onStart(test.id, isFinished)}
@@ -686,12 +832,18 @@ const TestCard = ({ test, onStart, t }) => {
         >
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
+=======
+      <button onClick={() => onStart(test.id, isFinished)} style={styles.cardBtn}>
+        {isFinished ? "Посмотреть результат" : isStarted ? "Продолжить" : "Начать тест"}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         </svg>
       </button>
     </div>
   );
 };
-
 const CategoryCard = ({ title, description, icon, gradient, onClick }) => (
   <div
     className="category-card"
@@ -719,7 +871,6 @@ const CategoryCard = ({ title, description, icon, gradient, onClick }) => (
     </div>
   </div>
 );
-
 const QuickStat = ({ count, label, color, icon }) => (
   <div style={styles.quickStatCard}>
     <div style={styles.quickStatIcon}>
@@ -740,7 +891,6 @@ const QuickStat = ({ count, label, color, icon }) => (
     </div>
   </div>
 );
-
 const NavItem = ({ icon, label, active, onClick, collapsed }) => (
   <div
     onClick={onClick}
@@ -751,12 +901,17 @@ const NavItem = ({ icon, label, active, onClick, collapsed }) => (
     {!collapsed && <span style={styles.navLabel}>{label}</span>}
   </div>
 );
+<<<<<<< HEAD
 
 // --- GLOBAL STYLES (Остаются без изменений) ---
+=======
+// --- GLOBAL STYLES (Темная тема) ---
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+<<<<<<< HEAD
     body { background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); min-height: 100vh; overflow-x: hidden; color: #fff; }
     .fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
@@ -1263,3 +1418,135 @@ const styles = {
 };
 
 export default Dashboard;
+=======
+    body {
+      background: #f9fafb;
+      background-image: radial-gradient(#dbeafe 0.5px, transparent 0.5px);
+      background-size: 20px 20px;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: #111827;
+    }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .test-card, .category-card { transition: all 0.3s ease; }
+    .test-card:hover, .category-card:hover { transform: translateY(-8px); }
+    .nav-item { cursor: pointer; transition: all 0.2s ease; }
+    .nav-item:hover { background: rgba(99, 102, 241, 0.1); transform: translateX(5px); }
+    .nav-item.active { background: rgba(99, 102, 241, 0.15); color: #4338ca; }
+    @media (max-width: 1024px) {
+      .sidebar { width: 80px !important; min-width: 80px !important; }
+      .sidebar-text { display: none !important; }
+    }
+    @media (max-width: 768px) {
+      .main { padding: 20px !important; }
+      .grid { grid-template-columns: 1fr !important; }
+    }
+  `}</style>
+);
+// --- STYLES OBJECT ---
+const styles = {
+  container: { display: "flex", minHeight: "100vh" },
+ 
+  // Loader
+  loaderContainer: { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#f9fafb" },
+  loader: { textAlign: 'center' },
+  loaderSpinner: { width: '50px', height: '50px', border: '3px solid rgba(0,0,0,0.1)', borderTop: '3px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' },
+  loaderText: { color: '#6b7280', fontSize: '16px' },
+  // Sidebar
+  sidebar: {
+    background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(20px)", borderRight: "1px solid rgba(0,0,0,0.1)",
+    display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "30px 15px", height: "100vh", position: "sticky", top: 0, transition: "width 0.3s ease", overflow: "hidden", zIndex: 50
+  },
+  logo: { display: "flex", alignItems: "center", gap: "12px", padding: "0 10px", marginBottom: "40px", cursor: "pointer" },
+  logoIcon: { width: "44px", height: "44px", borderRadius: "14px", background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  logoText: { fontSize: "18px", fontWeight: "800", color: "#111827", letterSpacing: "-0.5px", whiteSpace: "nowrap" },
+  nav: { display: "flex", flexDirection: "column", gap: "6px" },
+  navItem: { display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", borderRadius: "14px", color: '#6b7280', fontWeight: "600", fontSize: "14px" },
+  navIcon: { display: "flex", alignItems: "center", justifyContent: "center", width: "24px", flexShrink: 0 },
+  navLabel: { whiteSpace: "nowrap" },
+  divider: { margin: "24px 0 12px 16px" },
+  dividerText: { fontSize: "11px", fontWeight: "700", color: "rgba(107, 114, 128, 0.6)", letterSpacing: "1.5px" },
+  sidebarBottom: { display: "flex", flexDirection: "column", gap: "12px" },
+  collapseBtn: { width: "100%", padding: "12px", background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "12px", color: "#6b7280", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease" },
+  userCard: { display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(0,0,0,0.05)", borderRadius: "16px", border: "1px solid rgba(0,0,0,0.1)" },
+  avatar: { width: "44px", height: "44px", borderRadius: "12px", background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "18px", flexShrink: 0 },
+  userInfo: { overflow: "hidden" },
+  userName: { fontSize: "14px", fontWeight: "700", color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  userRole: { fontSize: "12px", color: "#6b7280", marginTop: "2px" },
+  logoutBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%", padding: "14px", background: "#6366f1", border: "1px solid transparent", borderRadius: "12px", color: "#ffffff", fontWeight: "600", fontSize: "14px", cursor: "pointer", transition: "all 0.2s ease", ":hover": { background: "rgba(99, 102, 241, 0.8)" } },
+  // Main
+  main: { flexGrow: 1, padding: "40px 50px", maxWidth: "1400px", minHeight: "100vh" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "40px", flexWrap: "wrap", gap: "20px" },
+  pageTitle: { fontSize: "32px", fontWeight: "800", color: "#111827", marginBottom: "8px" },
+  pageSubtitle: { color: "#6b7280", fontSize: "16px" },
+  headerRight: { display: "flex", alignItems: "center", gap: "12px" },
+  dateBadge: { display: "flex", alignItems: "center", gap: "10px", background: "rgba(0,0,0,0.05)", backdropFilter: "blur(10px)", padding: "12px 20px", borderRadius: "14px", fontWeight: "600", fontSize: "14px", color: "#111827", border: "1px solid rgba(0,0,0,0.1)" },
+  // Hero
+  hero: { background: "linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(129, 140, 248, 0.1) 100%)", border: "1px solid rgba(99, 102, 241, 0.2)", borderRadius: "28px", padding: "50px", color: "#111827", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "50px", position: "relative", overflow: "hidden" },
+  heroGlow: { position: "absolute", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%)", top: "-100px", right: "-100px", animation: "pulse 4s ease-in-out infinite" },
+  heroContent: { position: "relative", zIndex: 10, maxWidth: "500px" },
+  heroBadge: { display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.3)", padding: "8px 16px", borderRadius: "50px", fontSize: "13px", fontWeight: "600", color: "#4338ca", marginBottom: "20px" },
+  heroTitle: { fontSize: "36px", fontWeight: "800", marginBottom: "16px", lineHeight: "1.2" },
+  heroText: { fontSize: "16px", color: "#6b7280", lineHeight: "1.7", marginBottom: "30px" },
+  heroStats: { display: "flex", alignItems: "center", gap: "24px" },
+  heroStat: { textAlign: "center" },
+  heroStatNumber: { fontSize: "28px", fontWeight: "800", color: "#111827", display: "block" },
+  heroStatLabel: { fontSize: "13px", color: "#6b7280" },
+  heroStatDivider: { width: "1px", height: "40px", background: "rgba(0,0,0,0.1)" },
+  heroVisual: { position: "relative", width: "200px", height: "200px" },
+  heroCircle1: { position: "absolute", width: "180px", height: "180px", borderRadius: "50%", border: "2px solid rgba(99, 102, 241, 0.2)", top: "10px", left: "10px", animation: "pulse 3s ease-in-out infinite" },
+  heroCircle2: { position: "absolute", width: "140px", height: "140px", borderRadius: "50%", border: "2px solid rgba(129, 140, 248, 0.2)", top: "30px", left: "30px", animation: "pulse 3s ease-in-out infinite 0.5s" },
+  heroEmoji: { position: "absolute", fontSize: "80px", top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
+  // Sections
+  sectionHeader: { marginBottom: "30px" },
+  sectionTitle: { fontSize: "24px", fontWeight: "800", color: "#111827", marginBottom: "8px" },
+  sectionSubtitle: { fontSize: "15px", color: "#6b7280" },
+  sectionIcon: { width: "32px", height: "32px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "12px", fontSize: "16px" },
+  countBadge: { display: "inline-block", background: "rgba(0,0,0,0.05)", color: "#6b7280", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", marginLeft: "10px" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px", marginBottom: "40px" },
+  // Cards
+  categoryCard: { padding: "32px", borderRadius: "24px", color: "#fff", cursor: "pointer", position: "relative", display: "flex", flexDirection: "column", gap: "20px", minHeight: "200px", overflow: "hidden", border: "1px solid rgba(0,0,0,0.1)" },
+  catGlow: { position: "absolute", width: "200px", height: "200px", background: "radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)", top: "-50px", right: "-50px" },
+  catIcon: { fontSize: "48px", width: "80px", height: "80px", background: "rgba(255,255,255,0.2)", borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center" },
+  catTitle: { fontSize: "28px", fontWeight: "800", margin: 0 },
+  catDescription: { fontSize: "14px", opacity: 0.8, marginTop: "6px" },
+  catArrow: { position: "absolute", bottom: "28px", right: "28px", width: "44px", height: "44px", background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" },
+  card: { background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)", padding: "28px", borderRadius: "24px", border: "1px solid rgba(0,0,0,0.1)" },
+  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
+  cardIcon: { width: "56px", height: "56px", borderRadius: "16px", background: "rgba(99, 102, 241, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" },
+  statusBadge: { padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700" },
+  cardTitle: { fontSize: "20px", fontWeight: "700", color: "#111827", marginBottom: "8px" },
+  cardSubject: { fontSize: "14px", color: "#6b7280", marginBottom: "24px" },
+  cardBtn: { width: "100%", padding: "16px", borderRadius: "14px", border: "none", background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" },
+ 
+  // Progress Bar for Test Card
+  resultContainer: { marginBottom: "20px", background: "rgba(0,0,0,0.05)", padding: "12px", borderRadius: "12px" },
+  progressBarBg: { height: "6px", width: "100%", background: "rgba(0,0,0,0.1)", borderRadius: "10px", overflow: "hidden" },
+  progressBarFill: { height: "100%", borderRadius: "10px", transition: "width 1s ease-in-out" },
+  // Quick Stats
+  quickStats: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" },
+  quickStatCard: { background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "20px", padding: "24px", display: "flex", alignItems: "center", gap: "16px" },
+  quickStatIcon: { width: "50px", height: "50px", borderRadius: "14px", background: "rgba(0,0,0,0.05)", display: "flex", alignItems: "center", justifyContent: "center" },
+  quickStatValue: { fontSize: "28px", fontWeight: "800", color: "#111827", marginBottom: "4px" },
+  quickStatLabel: { fontSize: "13px", color: "#6b7280" },
+  // Empty State
+  emptyState: { textAlign: "center", padding: "60px 40px", background: "rgba(255,255,255,0.95)", borderRadius: "24px", border: "1px solid rgba(0,0,0,0.1)" },
+  emptyIcon: { fontSize: "64px", marginBottom: "20px" },
+  emptyTitle: { fontSize: "24px", fontWeight: "700", color: "#111827", marginBottom: "12px" },
+  emptyText: { fontSize: "15px", color: "#6b7280", maxWidth: "400px", margin: "0 auto 30px", lineHeight: "1.6" },
+  emptyBtn: { padding: "16px 32px", borderRadius: "14px", border: "none", background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", color: "#fff", fontWeight: "700", fontSize: "15px", cursor: "pointer" },
+};
+export default Dashboard;
+>>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
