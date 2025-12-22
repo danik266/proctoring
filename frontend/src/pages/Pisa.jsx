@@ -1,11 +1,16 @@
 import React from "react";
+// 1. Импортируем хук
+import { useLanguage } from "../context/LanguageContext";
 
 const PisaPage = ({ tests = [], onStart }) => {
-  // 👇 ДОБАВЛЕНО УСЛОВИЕ: && test.published === true
-  const displayTests = tests.filter((test) => 
-    test.type && 
-    test.type.trim().toUpperCase() === 'PISA' && 
-    test.published === true 
+  // 2. Достаем функцию перевода
+  const { t } = useLanguage();
+
+  const displayTests = tests.filter(
+    (test) =>
+      test.type &&
+      test.type.trim().toUpperCase() === "PISA" &&
+      test.published === true
   );
 
   return (
@@ -13,14 +18,16 @@ const PisaPage = ({ tests = [], onStart }) => {
       {/* БАННЕР */}
       <div style={styles.bannerPurple}>
         <div style={styles.bannerGlow}></div>
-        <div style={{position: 'relative', zIndex: 1}}>
-          <h2 style={styles.bannerTitle}>PISA</h2>
-          <p style={styles.bannerText}>Международная программа по оценке образовательных достижений.</p>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          {/* Перевод заголовка и описания */}
+          <h2 style={styles.bannerTitle}>{t("pisa_title")}</h2>
+          <p style={styles.bannerText}>{t("pisa_banner_desc")}</p>
         </div>
         <div style={styles.emoji}>🌍</div>
       </div>
 
-      <h3 style={styles.sectionTitle}>Международные тесты</h3>
+      {/* Перевод заголовка секции */}
+      <h3 style={styles.sectionTitle}>{t("pisa_section_title")}</h3>
 
       <div style={styles.grid}>
         {displayTests.length > 0 ? (
@@ -29,10 +36,16 @@ const PisaPage = ({ tests = [], onStart }) => {
             return (
               <div key={test.id} style={styles.card}>
                 <div style={styles.cardHeader}>
-                  {/* ИСПРАВЛЕНО: Глобус вместо флага */}
                   <div style={styles.iconBoxPurple}>🌐</div>
-                  <span style={isFinished ? styles.badgeSuccess : styles.badgeActive}>
-                    {isFinished ? "Сдано" : "Активен"}
+                  <span
+                    style={
+                      isFinished ? styles.badgeSuccess : styles.badgeActive
+                    }
+                  >
+                    {/* Общие статусы */}
+                    {isFinished
+                      ? t("card_status_done")
+                      : t("card_status_active")}
                   </span>
                 </div>
                 <h4 style={styles.cardTitle}>{test.name}</h4>
@@ -41,15 +54,17 @@ const PisaPage = ({ tests = [], onStart }) => {
                   onClick={() => onStart(test.id, isFinished)}
                   style={styles.btnPurple}
                 >
-                  {isFinished ? "Смотреть результат" : "Начать PISA"}
+                  {/* Перевод кнопок */}
+                  {isFinished ? t("btn_result") : t("btn_start_pisa")}
                 </button>
               </div>
             );
           })
         ) : (
           <div style={styles.emptyState}>
-             <div style={{fontSize: '40px', marginBottom: '10px'}}>📭</div>
-             Тесты PISA пока не добавлены.
+            <div style={{ fontSize: "40px", marginBottom: "10px" }}>📭</div>
+            {/* Перевод пустого состояния */}
+            {t("pisa_empty")}
           </div>
         )}
       </div>
@@ -59,7 +74,8 @@ const PisaPage = ({ tests = [], onStart }) => {
 
 const styles = {
   bannerPurple: {
-    background: "linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)",
+    background:
+      "linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)",
     border: "1px solid rgba(139, 92, 246, 0.3)",
     borderRadius: "24px",
     padding: "40px",
@@ -77,64 +93,116 @@ const styles = {
     right: "-10%",
     width: "300px",
     height: "300px",
-    background: "radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)",
+    background:
+      "radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)",
     filter: "blur(40px)",
   },
-  bannerTitle: { fontSize: "32px", fontWeight: "800", margin: "0 0 10px 0", color: "#fff" },
+  bannerTitle: {
+    fontSize: "32px",
+    fontWeight: "800",
+    margin: "0 0 10px 0",
+    color: "#fff",
+  },
   bannerText: { fontSize: "16px", color: "#94a3b8", margin: 0 },
   emoji: { fontSize: "80px", position: "relative", zIndex: 1 },
-  
-  sectionTitle: { fontSize: "24px", fontWeight: "800", color: "#fff", marginBottom: "25px" },
-  
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" },
-  
+
+  sectionTitle: {
+    fontSize: "24px",
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: "25px",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+    gap: "24px",
+  },
+
   card: {
     background: "rgba(255, 255, 255, 0.03)",
     backdropFilter: "blur(10px)",
     padding: "28px",
     borderRadius: "24px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    display: "flex", flexDirection: "column"
+    display: "flex",
+    flexDirection: "column",
   },
-  // ИСПРАВЛЕНО: добавил alignItems: "center"
-  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
-  
-  iconBoxPurple: { 
-    fontSize: "24px", 
-    background: "rgba(139, 92, 246, 0.2)", 
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+
+  iconBoxPurple: {
+    fontSize: "24px",
+    background: "rgba(139, 92, 246, 0.2)",
     color: "#a78bfa",
-    width: "48px", 
-    height: "48px", 
-    display: "flex", 
-    alignItems: "center", 
-    justifyContent: "center", 
+    width: "48px",
+    height: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: "14px",
-    border: "1px solid rgba(139, 92, 246, 0.3)"
+    border: "1px solid rgba(139, 92, 246, 0.3)",
   },
-  
-  // ИСПРАВЛЕНО: добавил height: "fit-content"
-  badgeActive: { padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(255, 255, 255, 0.1)", color: "#94a3b8", height: "fit-content" },
-  badgeSuccess: { padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(16, 185, 129, 0.2)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.3)", height: "fit-content" },
-  
-  cardTitle: { fontSize: "20px", fontWeight: "700", color: "#fff", margin: "0 0 8px 0" },
-  cardSubject: { fontSize: "14px", color: "#94a3b8", marginBottom: "24px", flex: 1 },
-  
+
+  badgeActive: {
+    padding: "6px 12px",
+    borderRadius: "10px",
+    fontSize: "12px",
+    fontWeight: "700",
+    background: "rgba(255, 255, 255, 0.1)",
+    color: "#94a3b8",
+    height: "fit-content",
+  },
+  badgeSuccess: {
+    padding: "6px 12px",
+    borderRadius: "10px",
+    fontSize: "12px",
+    fontWeight: "700",
+    background: "rgba(16, 185, 129, 0.2)",
+    color: "#34d399",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
+    height: "fit-content",
+  },
+
+  cardTitle: {
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#fff",
+    margin: "0 0 8px 0",
+  },
+  cardSubject: {
+    fontSize: "14px",
+    color: "#94a3b8",
+    marginBottom: "24px",
+    flex: 1,
+  },
+
   btnPurple: {
-    width: "100%", padding: "14px", borderRadius: "14px", border: "none",
-    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)", 
-    color: "#fff", fontWeight: "600", cursor: "pointer", fontSize: "14px",
-    boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)"
+    width: "100%",
+    padding: "14px",
+    borderRadius: "14px",
+    border: "none",
+    background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+    color: "#fff",
+    fontWeight: "600",
+    cursor: "pointer",
+    fontSize: "14px",
+    boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)",
   },
-  
-  emptyState: { 
+
+  emptyState: {
     gridColumn: "1 / -1",
-    background: "rgba(255,255,255,0.02)", 
+    background: "rgba(255,255,255,0.02)",
     border: "1px dashed rgba(255,255,255,0.1)",
     borderRadius: "20px",
     padding: "40px",
     textAlign: "center",
-    color: "#94a3b8" 
-  }
+    color: "#94a3b8",
+  },
 };
 
 export default PisaPage;
