@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "./LanguageContext"; // Импорт контекста
+import { useLanguage } from "../context/LanguageContext"; // Импорт контекста
 
 // === API CONSTANTS ===
 const API_URL = "http://localhost:5000/api/admin";
