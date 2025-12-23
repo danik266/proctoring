@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-// ИМПОРТИРУЕМ НАШ ХУК (проверь путь!)
 import { useLanguage } from "../context/LanguageContext";
 
 const Navbar = () => {
@@ -8,7 +7,6 @@ const Navbar = () => {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem("token");
 
-  // --- ПОДКЛЮЧАЕМ ГЛОБАЛЬНЫЙ ЯЗЫК ---
   const { language, changeLanguage, t } = useLanguage();
 
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -21,11 +19,10 @@ const Navbar = () => {
   ];
 
   const handleLangSelect = (code) => {
-    changeLanguage(code); // Меняем глобально
+    changeLanguage(code);
     setLangMenuOpen(false);
   };
 
-  // Закрытие меню при клике вне
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (langMenuRef.current && !langMenuRef.current.contains(event.target)) {
@@ -36,6 +33,7 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Проверяем, находимся ли мы на странице авторизации
   const isAuthPage = location.pathname === "/auth";
 
   const handleLogout = () => {
@@ -44,49 +42,17 @@ const Navbar = () => {
     window.location.reload();
   };
 
-  // Label для кнопки (текущий язык)
   const activeLabel =
     languages.find((l) => l.code === language)?.label || "Русский";
 
   return (
     <>
-      {/* СТИЛИ ОСТАЮТСЯ ТЕМИ ЖЕ, Я ИХ СКРЫЛ ДЛЯ КРАТКОСТИ, НО ОНИ НУЖНЫ */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-<<<<<<< HEAD
         .nav-btn { transition: all 0.2s ease; font-family: 'Plus Jakarta Sans', sans-serif; }
         .nav-btn:hover { color: #6366f1 !important; background: #eef2ff !important; }
         .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4) !important; background: #4f46e5 !important; }
         .logout-btn:hover { background: #fef2f2 !important; border-color: #ef4444 !important; color: #dc2626 !important; transform: translateY(-1px); }
-=======
-        
-        /* Анимация ссылок меню */
-        .nav-btn { 
-            transition: all 0.2s ease; 
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-        .nav-btn:hover { 
-            color: #6366f1 !important; 
-            background: #eef2ff !important;
-        }
-        
-        /* Кнопка Войти */
-        .login-btn:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4) !important; 
-            background: #4f46e5 !important;
-        }
-        
-        /* Кнопка Выйти */
-        .logout-btn:hover { 
-            background: #8f91f5ff !important; 
-            border-color: #8f91f5ff !important; 
-            color: #fff !important;
-            transform: translateY(-1px);
-        }
-        
-        /* Логотип */
->>>>>>> 5bb7a9d9c921ce4ed56ab5879ec500d03c6ef5ee
         .logo-container:hover .logo-icon { transform: rotate(10deg); }
         .lang-btn { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s ease; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: #475569; font-size: 14px; }
         .lang-btn:hover, .lang-btn.open { background: #f1f5f9; color: #0f172a; }
@@ -97,6 +63,7 @@ const Navbar = () => {
         .lang-item { display: flex; align-items: center; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 500; color: #334155; font-family: 'Plus Jakarta Sans', sans-serif; }
         .lang-item:hover { background: #eef2ff; color: #6366f1; }
         .lang-item.active { background: #e0e7ff; color: #4338ca; font-weight: 600; }
+        .profile-btn-content { display: flex; align-items: center; gap: 8px; }
       `}</style>
 
       <nav style={navStyles.navbar}>
@@ -130,7 +97,6 @@ const Navbar = () => {
             style={navStyles.navItem}
             onClick={() => navigate("/")}
           >
-            {/* ИСПОЛЬЗУЕМ t() ДЛЯ ПЕРЕВОДА */}
             {t("nav_home")}
           </button>
 
@@ -179,6 +145,35 @@ const Navbar = () => {
               >
                 {t("nav_tests")}
               </button>
+
+              {/* --- ИЗМЕНЕНИЕ ЗДЕСЬ: ПРОВЕРКА !isAuthPage --- */}
+              {/* Показываем кнопку профиля, ТОЛЬКО если мы НЕ на странице /auth */}
+              {!isAuthPage && (
+                <button
+                  className="nav-btn"
+                  style={navStyles.navItem}
+                  onClick={() => navigate("/profile")}
+                >
+                  <div className="profile-btn-content">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    {t("nav_profile") || "Кабинет"}
+                  </div>
+                </button>
+              )}
+              {/* ------------------------------------------- */}
+
               <button
                 onClick={handleLogout}
                 className="logout-btn"
@@ -206,7 +201,6 @@ const Navbar = () => {
   );
 };
 
-// ... navStyles остаются теми же ...
 const navStyles = {
   navbar: {
     width: "100%",
@@ -256,6 +250,9 @@ const navStyles = {
     fontSize: "14px",
     padding: "8px 16px",
     borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
   },
   login: {
     display: "flex",
@@ -272,14 +269,14 @@ const navStyles = {
     transition: "all 0.2s ease",
     marginLeft: "6px",
   },
-  logout: { 
-    padding: "9px 20px", 
-    borderRadius: "10px", 
-    border: "1px solid #6366f1", 
-    color: "#fff", 
-    background: "#6366f1", 
-    fontWeight: "600", 
-    fontSize: "14px", 
+  logout: {
+    padding: "9px 20px",
+    borderRadius: "10px",
+    border: "1px solid #6366f1",
+    color: "#fff",
+    background: "#6366f1",
+    fontWeight: "600",
+    fontSize: "14px",
     cursor: "pointer",
     transition: "all 0.2s ease",
     marginLeft: "6px",

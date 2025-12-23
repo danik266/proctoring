@@ -18,6 +18,8 @@ import Navbar from "./components/Navbar";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import TeamPage from "./pages/TeamPage";
+// --- ДОБАВЛЕН ИМПОРТ ПРОФИЛЯ ---
+import ProfilePage from "./pages/ProfilePage";
 
 // Обертка для защиты приватных страниц
 const PrivateRoute = ({ children }) => {
@@ -31,7 +33,8 @@ const Layout = ({ children }) => {
   const location = useLocation();
 
   // Список путей, где Navbar НЕ должен отображаться
-  const hideNavbarPaths = ["/", "/auth", "/team"];
+  // Добавляем сюда "/profile", так как ProfilePage сам рисует свой Navbar
+  const hideNavbarPaths = ["/", "/auth", "/team", "/profile"];
 
   const shouldShowNavbar = !hideNavbarPaths.includes(location.pathname);
 
@@ -67,6 +70,17 @@ function App() {
                 </PrivateRoute>
               }
             />
+
+            {/* --- ДОБАВЛЕН МАРШРУТ ПРОФИЛЯ --- */}
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <ProfilePage />
+                </PrivateRoute>
+              }
+            />
+            {/* -------------------------------- */}
 
             <Route
               path="/admin"

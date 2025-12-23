@@ -109,6 +109,7 @@ const translations = {
     pisa_section_title: "Международные тесты",
     btn_start_pisa: "Начать PISA",
     pisa_empty: "Тесты PISA пока не добавлены.",
+    nav_profile: "Профиль",
   },
 
   KZ: {
@@ -219,6 +220,7 @@ const translations = {
     pisa_section_title: "Халықаралық тесттер",
     btn_start_pisa: "PISA бастау",
     pisa_empty: "PISA тесттері әзірге қосылмаған.",
+    nav_profile: "Профиль",
   },
 
   EN: {
@@ -328,6 +330,7 @@ const translations = {
     pisa_section_title: "International Tests",
     btn_start_pisa: "Start PISA",
     pisa_empty: "PISA tests not added yet.",
+    nav_profile: "Profile",
   },
 };
 
