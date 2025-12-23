@@ -33,6 +33,13 @@ const translations = {
     auth_2fa_sub: "Введите код из Telegram бота",
     auth_verify: "Подтвердить",
 
+    // --- ПРОФИЛЬ (PROFILE) ---
+    role_student: "Ученик",
+    role_teacher: "Учитель",
+    role_admin: "Администратор",
+    profile_loading: "Загрузка данных...",
+    profile_email: "Email",
+
     // --- МОДАЛЬНЫЕ ОКНА И ОШИБКИ ---
     no_data: "Нет данных",
     modal_error: "Ошибка",
@@ -144,6 +151,13 @@ const translations = {
     auth_2fa_sub: "Telegram-боттан кодты енгізіңіз",
     auth_verify: "Растау",
 
+    // --- ПРОФИЛЬ (PROFILE) ---
+    role_student: "Оқушы",
+    role_teacher: "Мұғалім",
+    role_admin: "Әкімші",
+    profile_loading: "Деректер жүктелуде...",
+    profile_email: "Email",
+
     // --- МОДАЛЬНЫЕ ОКНА ---
     no_data: "Деректер жоқ",
     modal_error: "Қате",
@@ -254,6 +268,13 @@ const translations = {
     auth_2fa_title: "2FA Verification",
     auth_2fa_sub: "Enter code from Telegram bot",
     auth_verify: "Verify",
+
+    // --- PROFILE ---
+    role_student: "Student",
+    role_teacher: "Teacher",
+    role_admin: "Administrator",
+    profile_loading: "Loading data...",
+    profile_email: "Email",
 
     // --- MODALS ---
     no_data: "No data",

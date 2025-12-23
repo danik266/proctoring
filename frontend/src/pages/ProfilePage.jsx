@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar"; // 👈 Вернул импорт Navbar
+import Navbar from "../components/Navbar";
 import { useLanguage } from "../context/LanguageContext";
 
-// 👇 ИМПОРТИРУЕМ DASHBOARD
+// 👇 ИМПОРТИРУЕМ DASHBOARD ДЛЯ ФОНА
 import Dashboard from "./Dashboard";
 
 const ProfilePage = () => {
@@ -41,7 +41,7 @@ const ProfilePage = () => {
         if (err.response && err.response.data && err.response.data.error) {
           setError(err.response.data.error);
         } else {
-          setError("Не удалось загрузить данные профиля. Проверьте консоль.");
+          setError("Failed to load profile data.");
         }
       } finally {
         setLoading(false);
@@ -61,14 +61,15 @@ const ProfilePage = () => {
     navigate(-1);
   };
 
+  // Функция перевода ролей
   const renderRole = (role) => {
     switch (role) {
       case "student":
-        return t("role_student") || "Ученик";
+        return t("role_student");
       case "teacher":
-        return t("role_teacher") || "Учитель";
+        return t("role_teacher");
       case "admin":
-        return t("role_admin") || "Админ";
+        return t("role_admin");
       default:
         return role;
     }
@@ -87,7 +88,7 @@ const ProfilePage = () => {
           width: "100%",
           height: "100%",
           zIndex: 0,
-          filter: "blur(6px)", // Только размытие
+          filter: "blur(6px)", // Размытие фона
           pointerEvents: "none",
           transform: "scale(1.02)",
         }}
@@ -95,12 +96,12 @@ const ProfilePage = () => {
         <Dashboard />
       </div>
 
-      {/* 👇 2. NAVBAR (Четкий, поверх размытого фона, но под затемнением) */}
+      {/* 👇 2. NAVBAR */}
       <div style={{ position: "relative", zIndex: 10 }}>
         <Navbar />
       </div>
 
-      {/* 👇 3. САМ ПРОФИЛЬ (Overlay - лежит поверх всего) */}
+      {/* 👇 3. МОДАЛЬНОЕ ОКНО ПРОФИЛЯ */}
       <div className="profile-overlay">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -111,7 +112,6 @@ const ProfilePage = () => {
             left: 0; 
             width: 100vw; 
             height: 100vh; 
-            /* Легкое затемнение фона, покрывает и Dashboard и Navbar */
             background: rgba(0, 0, 0, 0.2); 
             display: flex; 
             justify-content: center; 
@@ -171,7 +171,8 @@ const ProfilePage = () => {
             <div
               style={{ textAlign: "center", padding: "40px", color: "#64748b" }}
             >
-              Загрузка данных...
+              {/* Используем ключ для загрузки */}
+              {t("profile_loading")}
             </div>
           ) : error ? (
             <div
@@ -189,30 +190,35 @@ const ProfilePage = () => {
                 </div>
                 <h2 className="user-name">{userData.full_name}</h2>
                 <div className="user-role-badge">
+                  {/* Перевод роли */}
                   {renderRole(userData.role)}
                 </div>
               </div>
 
               <div className="info-grid">
                 <div className="info-item">
-                  <span className="label">Email</span>
+                  {/* Перевод Email */}
+                  <span className="label">{t("profile_email")}</span>
                   <span className="value">{userData.email || "—"}</span>
                 </div>
                 <div className="info-item">
-                  <span className="label">{t("auth_phone") || "Телефон"}</span>
+                  {/* Перевод Телефона */}
+                  <span className="label">{t("auth_phone")}</span>
                   <span className="value">{userData.phone || "—"}</span>
                 </div>
 
                 {userData.school && (
                   <div className="info-item">
-                    <span className="label">{t("auth_school") || "Школа"}</span>
+                    {/* Перевод Школы */}
+                    <span className="label">{t("auth_school")}</span>
                     <span className="value">{userData.school}</span>
                   </div>
                 )}
 
                 {userData.className && (
                   <div className="info-item">
-                    <span className="label">{t("auth_class") || "Класс"}</span>
+                    {/* Перевод Класса */}
+                    <span className="label">{t("auth_class")}</span>
                     <span className="value">{userData.className}</span>
                   </div>
                 )}
@@ -233,7 +239,8 @@ const ProfilePage = () => {
                   <polyline points="16 17 21 12 16 7"></polyline>
                   <line x1="21" y1="12" x2="9" y2="12"></line>
                 </svg>
-                {t("nav_logout") || "Выйти из аккаунта"}
+                {/* Перевод кнопки Выйти */}
+                {t("nav_logout")}
               </button>
             </>
           )}
