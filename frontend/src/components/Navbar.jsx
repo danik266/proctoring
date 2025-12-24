@@ -39,9 +39,9 @@ const Navbar = () => {
         
         /* Кнопка Выйти */
         .logout-btn:hover { 
-            background: #fef2f2 !important; 
-            border-color: #ef4444 !important; 
-            color: #dc2626 !important;
+            background: #8f91f5ff !important; 
+            border-color: #8f91f5ff !important; 
+            color: #fff !important;
             transform: translateY(-1px);
         }
         
@@ -186,9 +186,9 @@ const navStyles = {
   logout: { 
     padding: "9px 20px", 
     borderRadius: "10px", 
-    border: "1px solid #fee2e2", 
-    color: "#ef4444", 
-    background: "#fff", 
+    border: "1px solid #6366f1", 
+    color: "#fff", 
+    background: "#6366f1", 
     fontWeight: "600", 
     fontSize: "14px", 
     cursor: "pointer",
