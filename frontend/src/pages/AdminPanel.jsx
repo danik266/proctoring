@@ -296,14 +296,14 @@ const AdminPanel = () => {
           <nav style={styles.nav}>
             <NavItem
               icon={<DashboardIcon />}
-              label={t("nav_dashboard")}
+              label={t("Dashboard")}
               active={activeTab === "dashboard"}
               onClick={() => setActiveTab("dashboard")}
               collapsed={sidebarCollapsed}
             />
             <NavItem
               icon={<AnalyticsIcon />}
-              label={t("nav_analytics")}
+              label={t("Аналитика")}
               active={activeTab === "analytics"}
               onClick={() => setActiveTab("analytics")}
               collapsed={sidebarCollapsed}
@@ -311,7 +311,7 @@ const AdminPanel = () => {
             <div style={styles.divider} />
             <NavItem
               icon={<UsersIcon />}
-              label={t("nav_users")}
+              label={t("Пользователи")}
               active={activeTab === "users"}
               onClick={() => setActiveTab("users")}
               collapsed={sidebarCollapsed}
@@ -319,7 +319,7 @@ const AdminPanel = () => {
             />
             <NavItem
               icon={<TestsIcon />}
-              label={t("nav_tests")}
+              label={t("Тесты")}
               active={activeTab === "tests"}
               onClick={() => setActiveTab("tests")}
               collapsed={sidebarCollapsed}
@@ -327,14 +327,14 @@ const AdminPanel = () => {
             />
             <NavItem
               icon={<SessionsIcon />}
-              label={t("nav_sessions")}
+              label={t("Сессии")}
               active={activeTab === "sessions"}
               onClick={() => setActiveTab("sessions")}
               collapsed={sidebarCollapsed}
             />
             <NavItem
               icon={<ViolationsIcon />}
-              label={t("nav_violations")}
+              label={t("Нарушения")}
               active={activeTab === "violations"}
               onClick={() => setActiveTab("violations")}
               collapsed={sidebarCollapsed}
@@ -385,7 +385,7 @@ const AdminPanel = () => {
         <header style={styles.header}>
           <div>
             <h1 style={styles.pageTitle}>
-              {activeTab === "analytics" ? t("report_title") : t("admin_panel")}
+              {activeTab === "analytics" ? t("report_title") : t("Админ панель")}
             </h1>
             <p style={styles.pageSubtitle}>JANA TEST System</p>
           </div>
