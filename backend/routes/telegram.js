@@ -3,7 +3,6 @@ const fetch = require('node-fetch');
 const router = express.Router();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Маршрут для получения своего Telegram ID
 router.post("/telegram-me", async (req, res) => {
   try {
     const { chat_id } = req.body; // отправляем с фронтенда свой chat_id
