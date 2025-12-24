@@ -24,6 +24,16 @@ const Landing = () => {
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+  
+  const handleTrialTest = () => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    navigate("/dashboard"); // авторизован
+  } else {
+    navigate("/auth"); // не авторизован
+  }
+};
 
   return (
     <div className="landing-page">
@@ -274,7 +284,13 @@ const Landing = () => {
                     Огромная база вопросов, мгновенные результаты и работа над ошибками.
                   </p>
                   <div className="hero-buttons">
-                    <button className="btn btn-primary" onClick={() => navigate("/auth")}>Пройти пробный тест</button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleTrialTest}
+                            >
+                    Пройти пробный тест
+                    </button>
+
                     <button className="btn btn-secondary" onClick={() => scrollToSection('features')}>Как это работает</button>
                   </div>
                   <div className="hero-stats">
