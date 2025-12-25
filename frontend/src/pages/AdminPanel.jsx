@@ -461,7 +461,7 @@ const UsersTab = ({ users, onDelete, onAdd }) => (
                                 </td>
                                 <td style={styles.td}>{u.school || '-'} {u.class ? `(${u.class})` : ''}</td>
                                 <td style={styles.td}>
-                                    <button style={styles.iconBtnDel} onClick={()=>onDelete(u.id)} title="Удалить">🗑</button>
+                                    <button style={styles.iconBtnDel} onClick={()=>onDelete(u.id)} title="Удалить">Удалить</button>
                                 </td>
                             </tr>
                         ))}
@@ -849,7 +849,7 @@ const styles = {
   btnPrimaryOutline: { background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "8px", padding: "6px 14px", color: "#6366f1", cursor: "pointer", fontSize: 13, fontWeight: 600 },
   btnLink: { background: 'none', border:'none', color:'#6366f1', cursor:'pointer', fontSize:13, fontWeight:'700'},
   btnLinkRed: { background: 'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:13, fontWeight: 600 },
-  iconBtnDel: { background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "8px", width:32, height:32, color: "#ef4444", cursor: "pointer", display:'flex', alignItems:'center', justifyContent:'center' },
+  iconBtnDel: { background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "8px", width:64, height:32, color: "#ef4444", cursor: "pointer", display:'flex', alignItems:'center', justifyContent:'center' },
   violationBtn: { background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", padding: "4px 10px", color: "#ef4444", fontWeight:'700', fontSize:12, cursor:'pointer' },
   modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
   modal: { background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px", padding: "32px", width: "450px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" },

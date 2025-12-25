@@ -535,17 +535,30 @@ const s = {
   btnStart: { background: '#1e293b', color: 'white', border: 'none', padding: '20px', borderRadius: '20px', fontWeight: 700, fontSize: '18px', cursor: 'pointer', width: '100%', marginTop: '20px' },
   btnFinish: { background: '#fff1f2', color: '#e11d48', border: 'none', padding: '12px 24px', borderRadius: '14px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' },
   statusPage: { 
-    height: '100vh', 
+    position: 'fixed',        // ВАЖНО: Фиксируем экран, чтобы не зависеть от отступов body
+    top: 0,
+    left: 0,
+    width: '100%',            // 100% вместо 100vw, чтобы избежать гориз. скролла
+    height: '100%',
     display: 'flex', 
     justifyContent: 'center', 
     alignItems: 'center', 
     background: '#f1f5f9', 
-    padding: '20px',
-    // --- ДОБАВИТЬ ЭТИ СТРОКИ ---
-    boxSizing: 'border-box', // Учитывает padding внутри высоты
-    overflow: 'hidden'       // Убирает любые полосы прокрутки
+    zIndex: 9999,             // Поверх всего
+    overflow: 'hidden'        // Полностью обрезаем прокрутку страницы
   },
-  statusCard: { background: 'white', padding: '60px', borderRadius: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', maxWidth: '500px' },
+
+  statusCard: { 
+    background: 'white', 
+    padding: '60px', 
+    borderRadius: '40px', 
+    textAlign: 'center', 
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', 
+    width: '100%',            // Чтобы сжималась на мелких экранах
+    maxWidth: '500px',
+    maxHeight: '90vh',        // Если контент длинный, он не растянет страницу
+    overflowY: 'auto'         // Скролл будет ВНУТРИ карточки, если нужно, а не на странице
+  },
   statusTitle: { fontSize: '32px', fontWeight: 800, marginBottom: '16px', color: '#1e293b' },
   statusText: { color: '#64748b', marginBottom: '40px', lineHeight: 1.6, fontSize: '16px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 20000 },
