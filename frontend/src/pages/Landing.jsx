@@ -274,7 +274,7 @@ const Landing = () => {
                     Огромная база вопросов, мгновенные результаты и работа над ошибками.
                   </p>
                   <div className="hero-buttons">
-                    <button className="btn btn-primary" onClick={() => navigate("/auth")}>Пройти пробный тест</button>
+                    <button className="btn btn-primary" onClick={() => navigate("/auth")}>Войти</button>
                     <button className="btn btn-secondary" onClick={() => scrollToSection('features')}>Как это работает</button>
                   </div>
                   <div className="hero-stats">

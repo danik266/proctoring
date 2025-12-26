@@ -138,16 +138,7 @@ const Navbar = () => {
 
           {isAuthenticated ? (
             <>
-              <button
-                className="nav-btn"
-                style={navStyles.navItem}
-                onClick={() => navigate("/dashboard")}
-              >
-                {t("nav_tests")}
-              </button>
-
-              {/* --- ИЗМЕНЕНИЕ ЗДЕСЬ: ПРОВЕРКА !isAuthPage --- */}
-              {/* Показываем кнопку профиля, ТОЛЬКО если мы НЕ на странице /auth */}
+              {/* --- ИЗМЕНЕНИЕ: Добавлена проверка !isAuthPage перед кнопкой тестов --- */}
               {!isAuthPage && (
                 <button
                   className="nav-btn"
@@ -172,7 +163,6 @@ const Navbar = () => {
                   </div>
                 </button>
               )}
-              {/* ------------------------------------------- */}
 
               <button
                 onClick={handleLogout}
