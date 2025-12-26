@@ -24,6 +24,16 @@ const Landing = () => {
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+  
+  const handleTrialTest = () => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    navigate("/dashboard"); // авторизован
+  } else {
+    navigate("/auth"); // не авторизован
+  }
+};
 
   return (
     <div className="landing-page">

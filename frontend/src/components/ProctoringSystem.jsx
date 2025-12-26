@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import * as faceapi from "@vladmandic/face-api";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 
@@ -11,56 +11,44 @@ export default function ProctoringSystem({ onViolation, isActive, sessionId }) {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]); 
   const sessionIdRef = useRef(sessionId);
-  const cocoModelRef = useRef(null); // Добавляем реф для модели
   
+  const cocoModelRef = useRef(null);
+  const authorizedFaceRef = useRef(null); // Хранит дескриптор (слепок) лица первого пользователя
+
   const lastViolationTime = useRef(0);
   const lastCheckTime = useRef(0);
 
-  // Обновляем ID при смене пропса
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
- const saveAndUploadVideo = async (blob) => {
+  // --- ЗАГРУЗКА ВИДЕО (без изменений) ---
+  const saveAndUploadVideo = async (blob) => {
     if (!blob || blob.size === 0) return;
-
     const currentId = sessionIdRef.current;
-    if (!currentId) {
-        console.error("❌ Невозможно привязать видео: sessionId отсутствует.");
-        return;
-    }
+    if (!currentId) return;
 
     const formData = new FormData();
-    // Поле должно называться 'session_video', как в upload.single() на сервере
     formData.append("session_video", blob, `test_session_${currentId}.webm`);
-    // Поле sessionId для связи в БД
     formData.append("sessionId", currentId);
 
     try {
-        const response = await fetch("http://localhost:5000/upload-video", {
+        await fetch("http://localhost:5000/upload-video", {
             method: "POST",
             body: formData,
-            // Не используем keepalive для файлов > 64kb
         });
-        
-        if (response.ok) {
-            const result = await response.json();
-        } else {
-            console.error("📦 Сервер принял файл, но возникла ошибка привязки.");
-        }
     } catch (e) {
-        console.error("🌐 Ошибка сети при загрузке видео:", e);
-    }
-  };
-  // Остановка записи
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.requestData(); // Сохраняем последние кадры
-      mediaRecorderRef.current.stop(); // Это вызовет onstop
+        console.error("🌐 Ошибка загрузки видео:", e);
     }
   };
 
-  // Остановка камеры
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.requestData();
+      mediaRecorderRef.current.stop();
+    }
+  };
+
   const stopCamera = () => {
      if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -70,80 +58,37 @@ export default function ProctoringSystem({ onViolation, isActive, sessionId }) {
 
   const startRecording = (stream) => {
     try {
-      // Используем VP8 - он лучше открывается в обычных плеерах
       const mimeType = 'video/webm; codecs=vp8'; 
-      
-      const options = MediaRecorder.isTypeSupported(mimeType) 
-        ? { mimeType } 
-        : { mimeType: 'video/webm' };
-
+      const options = MediaRecorder.isTypeSupported(mimeType) ? { mimeType } : { mimeType: 'video/webm' };
       const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+        if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: options.mimeType });
-        chunksRef.current = []; // Чистим память
+        chunksRef.current = [];
         saveAndUploadVideo(blob);
-        stopCamera(); // Выключаем камеру ТОЛЬКО после сборки видео
+        stopCamera();
       };
-
-      // ВАЖНО: Убрали аргумент (1000). Пишем одним куском в память.
-      // Это предотвращает "битые" заголовки при разрыве.
       recorder.start(); 
     } catch (e) {
       console.error("Ошибка старта записи:", e);
     }
   };
 
-  // --- ЛОГИКА ДЕТЕКЦИИ (сокращенно, чтобы не занимать место) ---
-  const startDetection = async () => {
-    const run = async () => {
-      if (!isActive || !videoRef.current) return;
-      const now = Date.now();
-      if (now - lastCheckTime.current > 100) {
-          lastCheckTime.current = now;
-          try {
-             if (videoRef.current.readyState === 4) {
-                 // Твой код FaceAPI...
-                 const detection = await faceapi.detectSingleFace(
-                     videoRef.current, 
-                     new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }) 
-                 );
-                 if (!detection) triggerViolation("Лицо не найдено");
-                 
-                 // Твой код CocoSSD...
-                 if (cocoModelRef.current) {
-                     const objects = await cocoModelRef.current.detect(videoRef.current);
-                     const forbidden = objects.find(obj => 
-                         ["cell phone", "mobile phone", "laptop"].includes(obj.class) && obj.score > 0.5
-                     );
-                     if (forbidden) triggerViolation(`Запрещено: ${forbidden.class}`);
-                 }
-             }
-          } catch (e) { }
-      }
-      if (isActive) requestAnimationFrame(run);
-    };
-    run();
-  };
-  
-  // Внутри ProctoringSystem.js
-
-const triggerViolation = async (reason) => {
+  // --- ЛОГИКА НАРУШЕНИЙ (Скриншот) ---
+  const triggerViolation = async (reason) => {
     const now = Date.now();
-    if (now - lastViolationTime.current < 2000) return;
+    // Увеличим задержку до 3 сек, чтобы не спамить при смене лица
+    if (now - lastViolationTime.current < 3000) return; 
     lastViolationTime.current = now;
 
     let screenshotFilename = null;
 
-    // Сначала делаем скриншот и загружаем его
     if (videoRef.current) {
         const canvas = document.createElement("canvas");
         canvas.width = videoRef.current.videoWidth;
@@ -158,40 +103,104 @@ const triggerViolation = async (reason) => {
                 try {
                     const res = await fetch("http://localhost:5000/upload-screenshot", { method: "POST", body: fd });
                     const data = await res.json();
-                    screenshotFilename = data.filename; // Получаем имя файла от сервера
+                    screenshotFilename = data.filename;
                 } catch(e) { console.error(e); }
                 resolve();
             });
         });
     }
-
-    // И ТОЛЬКО ПОТОМ вызываем onViolation с именем файла
     onViolation(reason, screenshotFilename);
-};
+  };
 
+  // --- ГЛАВНАЯ ЛОГИКА ДЕТЕКЦИИ ---
+  const startDetection = async () => {
+    const run = async () => {
+      if (!isActive || !videoRef.current) return;
+      const now = Date.now();
+      
+      // Проверяем каждые 200мс (чуть реже, т.к. вычисления тяжелее)
+      if (now - lastCheckTime.current > 200) { 
+          lastCheckTime.current = now;
+          try {
+             if (videoRef.current.readyState === 4) {
+                 
+                 // 1. ПОИСК ЛИЦ И ВЫЧИСЛЕНИЕ ДЕСКРИПТОРОВ
+                 // Используем detectAllFaces, чтобы найти количество людей
+                 const detections = await faceapi.detectAllFaces(
+                     videoRef.current, 
+                     new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }) 
+                 )
+                 .withFaceLandmarks() // Нужно для выравнивания
+                 .withFaceDescriptors(); // Нужно для сравнения (Face ID)
+
+                 // ПРОВЕРКА 1: Количество людей
+                 if (detections.length === 0) {
+                     triggerViolation("Лицо не найдено");
+                 } else if (detections.length > 1) {
+                     triggerViolation("Посторонние в кадре (более 1 чел)");
+                 } else {
+                     // Если лицо одно - проверяем, тот ли это человек
+                     const currentDescriptor = detections[0].descriptor;
+
+                     if (!authorizedFaceRef.current) {
+                         // Если это первый успешный кадр с одним лицом - запоминаем его
+                         authorizedFaceRef.current = currentDescriptor;
+                         console.log("✅ Пользователь авторизован (лицо запомнено)");
+                     } else {
+                         // Сравниваем текущее лицо с запомненным
+                         const distance = faceapi.euclideanDistance(authorizedFaceRef.current, currentDescriptor);
+                         
+                         // Порог 0.6 является стандартом для face-api. 
+                         // > 0.6 значит лица разные.
+                         if (distance > 0.6) {
+                             triggerViolation("Обнаружена подмена пользователя");
+                         }
+                     }
+                 }
+                 
+                 // 2. ПОИСК ОБЪЕКТОВ (CocoSSD)
+                 if (cocoModelRef.current) {
+                     const objects = await cocoModelRef.current.detect(videoRef.current);
+                     const forbidden = objects.find(obj => 
+                         ["cell phone", "mobile phone", "laptop"].includes(obj.class) && obj.score > 0.5
+                     );
+                     if (forbidden) triggerViolation(`Запрещено: ${forbidden.class}`);
+                 }
+             }
+          } catch (e) { 
+              console.error("Detection error:", e);
+          }
+      }
+      if (isActive) requestAnimationFrame(run);
+    };
+    run();
+  };
+  
   useEffect(() => {
     const init = async () => {
-      // Загрузка моделей
-      await Promise.all([
-         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-         cocoSsd.load()
-      ]).then(([_, model]) => cocoModelRef.current = model);
+      try {
+          // Загружаем ДОПОЛНИТЕЛЬНЫЕ модели для распознавания
+          await Promise.all([
+             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL), // Для точек лица
+             faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL), // Для сравнения лиц
+             cocoSsd.load()
+          ]).then(([_, __, ___, model]) => cocoModelRef.current = model);
 
-      // Запуск камеры
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
+          streamRef.current = stream;
+          if (videoRef.current) videoRef.current.srcObject = stream;
 
-      startRecording(stream);
-      startDetection();
+          startRecording(stream);
+          startDetection();
+      } catch (e) {
+          console.error("Ошибка инициализации:", e);
+      }
     };
 
     init();
 
-    // ПРИ ВЫХОДЕ
     return () => {
-        // Мы вызываем ТОЛЬКО остановку записи.
-        // Камера сама выключится внутри recorder.onstop
         stopRecording();
     };
   }, []);
