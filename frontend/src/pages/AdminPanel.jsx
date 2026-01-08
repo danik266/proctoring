@@ -1430,8 +1430,6 @@ const SessionsTab = ({ sessions, onVideo }) => (
               <th style={styles.th}>Студент</th>
               <th style={styles.th}>Тест</th>
               <th style={styles.th}>Балл</th>
-              <th style={styles.th}>Видео</th>
-              <th style={styles.th}>Нарушения</th>
               <th style={styles.th}>Статус</th>
             </tr>
           </thead>
@@ -1451,35 +1449,8 @@ const SessionsTab = ({ sessions, onVideo }) => (
                 <td style={styles.td}>
                   <span style={styles.scoreBadge}>{s.score}</span>
                 </td>
-                <td style={styles.td}>
-                  {s.recording_links?.length > 0 ? (
-                    <button
-                      style={styles.btnLink}
-                      onClick={() => onVideo(s.recording_links[0])}
-                    >
-                      ▶ Play
-                    </button>
-                  ) : (
-                    <span style={{ opacity: 0.3 }}>-</span>
-                  )}
-                </td>
-                <td style={styles.td}>
-                  {parseInt(s.violations_count) > 0 ? (
-                    <span
-                      style={{
-                        ...styles.badge,
-                        background: "#fef2f2",
-                        color: "#ef4444",
-                      }}
-                    >
-                      ⚠️ {s.violations_count}
-                    </span>
-                  ) : (
-                    <span style={{ color: "#10b981", fontWeight: 600 }}>
-                      Нет
-                    </span>
-                  )}
-                </td>
+                
+                
                 <td style={styles.td}>
                   {s.end_time ? (
                     <StatusBadge status="completed" />

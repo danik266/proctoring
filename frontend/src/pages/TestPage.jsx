@@ -1,32 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import ProctoringSystem from "../components/ProctoringSystem"; // Убедись, что путь верный
-// 👇 ИМПОРТЫ ДЛЯ ФОРМУЛ (Убедись, что npm install katex react-katex сделан)
+// ProctoringSystem удален
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import {
   CheckCircle,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
+  ChevronLeft, // Оставлен, если нужен
+  ChevronRight, // Оставлен, если нужен
   Clock,
   ShieldCheck,
-  AlertTriangle,
   X as XIcon,
-  Camera,
 } from "lucide-react";
 
 // === КОНСТАНТЫ ===
-const MAX_VIOLATIONS_WARNING = 5;
 const API_BASE = "http://localhost:5000/api";
 const UPLOADS_URL = "http://localhost:5000/uploads";
 
 // === КОМПОНЕНТ ОТОБРАЖЕНИЯ (Безопасный) ===
 const RichDisplay = ({ text, image, isOption = false }) => {
-  // Защита: превращаем text в строку, чтобы избежать ошибок, если придет число
   const safeText = text !== null && text !== undefined ? String(text) : "";
 
-  // Проверяем на наличие LaTeX
   const hasMath =
     safeText &&
     (safeText.includes("\\") ||
@@ -50,7 +43,6 @@ const RichDisplay = ({ text, image, isOption = false }) => {
           <span style={{ marginRight: 8 }}>{safeText}</span>
           {hasMath && (
             <span style={{ color: "#4f46e5", fontWeight: 600 }}>
-              {/* Оборачиваем в try-catch для katex на всякий случай, но InlineMath обычно надежен */}
               <InlineMath math={safeText} />
             </span>
           )}
@@ -71,7 +63,7 @@ const RichDisplay = ({ text, image, isOption = false }) => {
               objectFit: "contain",
               display: "block",
             }}
-            onError={(e) => (e.target.style.display = "none")} // Скрыть битые картинки
+            onError={(e) => (e.target.style.display = "none")}
           />
         </div>
       )}
@@ -99,43 +91,15 @@ const TestPage = () => {
   const [timeLeft, setTimeLeft] = useState(7200);
   const [showModal, setShowModal] = useState(false);
 
-  // --- КАМЕРА ---
-  const [cameraPermission, setCameraPermission] = useState(false);
-
-  // --- ПРОКТОРИНГ ---
-  const [violationCount, setViolationCount] = useState(0);
-  const [violationLog, setViolationLog] = useState([]);
-  const [showFlash, setShowFlash] = useState(false);
-
   // --- REFS ---
   const isFinishedRef = useRef(false);
-  const isCooldownRef = useRef(false);
-  const userIdRef = useRef(localStorage.getItem("user_id"));
 
   useEffect(() => {
     isFinishedRef.current = isFinished;
   }, [isFinished]);
 
-  // 1. ЗАПРОС КАМЕРЫ
-  const requestCameraAccess = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((track) => track.stop());
-      setCameraPermission(true);
-    } catch (error) {
-      console.error("Camera denied:", error);
-      alert("Нужен доступ к камере!");
-      setCameraPermission(false);
-    }
-  };
-
-  // 2. СТАРТ ТЕСТА
+  // 1. СТАРТ ТЕСТА (Убрана проверка камеры)
   const handleStartTest = async () => {
-    if (!cameraPermission) {
-      await requestCameraAccess();
-      if (!cameraPermission) return;
-    }
-
     try {
       const rawUserId = localStorage.getItem("user_id");
       if (!rawUserId) return alert("Ошибка: нет user_id");
@@ -154,6 +118,7 @@ const TestPage = () => {
       if (data.sessionId) setSessionId(data.sessionId);
 
       setIsTestStarted(true);
+      // Оставляем полноэкранный режим, если нужно, или можно убрать
       document.documentElement.requestFullscreen().catch(console.log);
     } catch (error) {
       console.error(error);
@@ -161,15 +126,13 @@ const TestPage = () => {
     }
   };
 
-  // 3. ЗАГРУЗКА ВОПРОСОВ
+  // 2. ЗАГРУЗКА ВОПРОСОВ
   useEffect(() => {
     fetch(`${API_BASE}/tests/${id}/questions`)
       .then((r) => r.json())
       .then((d) => {
-        // Парсим опции, если они строка + ВАЖНО: проверяем image
         const formatted = d.map((q) => ({
           ...q,
-          // Если image null, оставляем null. Если есть - оставляем как есть.
           image: q.image || null,
           options:
             typeof q.options === "string" ? JSON.parse(q.options) : q.options,
@@ -183,7 +146,7 @@ const TestPage = () => {
       });
   }, [id]);
 
-  // 4. ТАЙМЕР
+  // 3. ТАЙМЕР
   useEffect(() => {
     let timer;
     if (isTestStarted && !isFinished) {
@@ -200,25 +163,7 @@ const TestPage = () => {
     return () => clearInterval(timer);
   }, [isTestStarted, isFinished]);
 
-  // 5. НАРУШЕНИЯ
-  const addViolation = useCallback((reason, img = null) => {
-    if (isFinishedRef.current || isCooldownRef.current) return;
-    isCooldownRef.current = true;
-    setShowFlash(true);
-    setViolationCount((p) => p + 1);
-    setViolationLog((p) => [
-      { time: new Date().toLocaleTimeString(), msg: reason, id: Date.now() },
-      ...p,
-    ]);
-
-    // Логика отправки на сервер (упрощена для примера)
-    setTimeout(() => {
-      isCooldownRef.current = false;
-      setShowFlash(false);
-    }, 1000);
-  }, []);
-
-  // 6. ЗАВЕРШЕНИЕ
+  // 4. ЗАВЕРШЕНИЕ
   const finishTest = async () => {
     setIsLoading(true);
     const userId = localStorage.getItem("user_id");
@@ -259,7 +204,6 @@ const TestPage = () => {
       </div>
     );
 
-  // Если вопросы не загрузились или их нет (защита от черного экрана)
   if (isTestStarted && (!questions || questions.length === 0)) {
     return (
       <div style={s.loader}>Ошибка: Вопросы не найдены. Проверьте сервер.</div>
@@ -269,7 +213,6 @@ const TestPage = () => {
   // Экран результатов
   if (isFinished) {
     if (isReviewMode) {
-      // Режим просмотра ошибок
       const qReview = questions[currentQuestion];
       const optsReview = qReview?.options || [];
       return (
@@ -393,29 +336,23 @@ const TestPage = () => {
     );
   }
 
-  // --- ЭКРАН ТЕСТА ---
+  // --- ЭКРАН ТЕСТА (СТАРТ) ---
   if (!isTestStarted) {
     return (
       <div style={s.startCenter}>
         <div style={s.startCard}>
           <ShieldCheck size={48} color="#4f46e5" style={{ margin: "0 auto" }} />
           <h1 style={s.mainTitle}>Начать тест</h1>
-          {!cameraPermission ? (
-            <button style={s.btnStart} onClick={requestCameraAccess}>
-              📷 Разрешить камеру
-            </button>
-          ) : (
-            <button style={s.btnStart} onClick={handleStartTest}>
-              🚀 ПОЕХАЛИ
-            </button>
-          )}
+          {/* Кнопка старта сразу, без запроса камеры */}
+          <button style={s.btnStart} onClick={handleStartTest}>
+            🚀 Начать
+          </button>
         </div>
       </div>
     );
   }
 
   const currentQ = questions[currentQuestion];
-  // ЗАЩИТА ОТ КРАША: Если currentQ undefined (пустой массив вопросов), не рендерим дальше
   if (!currentQ) return <div style={s.loader}>Ошибка данных вопроса</div>;
 
   const options = currentQ.options || [];
@@ -423,7 +360,6 @@ const TestPage = () => {
 
   return (
     <div style={s.page}>
-      {showFlash && <div style={s.flash} />}
       {showModal && (
         <div style={s.modalOverlay}>
           <div style={s.modalCard}>
@@ -516,33 +452,14 @@ const TestPage = () => {
               </button>
             </div>
           </div>
-
-          <aside style={s.side}>
-            <ProctoringSystem
-              isActive={true}
-              onViolation={addViolation}
-              sessionId={sessionId}
-            />
-            <div style={s.violBlock}>
-              <div
-                style={{
-                  color:
-                    violationCount > MAX_VIOLATIONS_WARNING ? "red" : "green",
-                  fontSize: 24,
-                  fontWeight: "bold",
-                }}
-              >
-                {violationCount}
-              </div>
-              <div>Нарушений</div>
-            </div>
-          </aside>
+          {/* Боковая панель ASIDE удалена, чтобы вопросы были на всю ширину */}
         </main>
       </div>
     </div>
   );
 };
 
+// === STYLES ===
 // === STYLES ===
 const s = {
   page: {
@@ -557,13 +474,6 @@ const s = {
     color: "#0f172a",
     fontFamily: "sans-serif",
   },
-  flash: {
-    position: "absolute",
-    inset: 0,
-    border: "10px solid red",
-    zIndex: 10000,
-    pointerEvents: "none",
-  },
   loader: {
     height: "100vh",
     display: "flex",
@@ -571,11 +481,13 @@ const s = {
     alignItems: "center",
     fontSize: 20,
   },
+  // --- СТИЛИ ДЛЯ СТАРТОВОГО ЭКРАНА ---
   startCenter: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
+    background: "#f1f5f9",
   },
   startCard: {
     background: "white",
@@ -583,17 +495,29 @@ const s = {
     borderRadius: 24,
     textAlign: "center",
     boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+    maxWidth: "400px",
+    width: "100%",
+  },
+  mainTitle: { // Вот этот стиль, который используется в твоем куске кода
+    fontSize: "32px",
+    fontWeight: "800",
+    color: "#1e293b",
+    margin: "24px 0",
   },
   btnStart: {
-    marginTop: 20,
-    padding: "15px 30px",
+    marginTop: 10,
+    width: "100%",
+    padding: "16px",
     background: "#4f46e5",
     color: "white",
     border: "none",
-    borderRadius: 12,
+    borderRadius: 16,
     fontSize: 18,
+    fontWeight: "bold",
     cursor: "pointer",
+    transition: "transform 0.1s",
   },
+  // -----------------------------------
   layout: { display: "flex", flexDirection: "column", height: "100%" },
   progressBar: { height: 4, background: "#4f46e5", transition: "width 0.3s" },
   header: {
@@ -625,7 +549,7 @@ const s = {
     fontWeight: "bold",
   },
   main: { flex: 1, display: "flex", overflow: "hidden" },
-  qBox: { flex: 1, padding: "40px", overflowY: "auto" },
+  qBox: { flex: 1, padding: "40px", overflowY: "auto", maxWidth: "100%" },
   qHeader: { marginBottom: 20 },
   qBadge: {
     background: "#e0e7ff",
@@ -709,21 +633,6 @@ const s = {
     border: "none",
     borderRadius: 12,
     cursor: "not-allowed",
-  },
-  side: {
-    width: 300,
-    background: "white",
-    borderLeft: "1px solid #e2e8f0",
-    padding: 20,
-    display: "flex",
-    flexDirection: "column",
-  },
-  violBlock: {
-    marginTop: 20,
-    padding: 20,
-    background: "#f8fafc",
-    borderRadius: 12,
-    textAlign: "center",
   },
   statusPage: {
     height: "100vh",
