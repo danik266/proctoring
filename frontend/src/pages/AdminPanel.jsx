@@ -493,6 +493,136 @@ const TestsTab = ({ tests, onDelete, onToggle, onEdit, onAdd }) => {
 };
 
 // === TEST MODAL (С ФОТО В ВОПРОСАХ И ОТВЕТАХ) ===
+const LatexKeyboard = ({ open, onClose, onInsert }) => {
+  const [tab, setTab] = useState("ALG");
+  if (!open) return null;
+
+  const TABS = [
+    { id: "ALG", label: "Алгебра" },
+    { id: "CHEM", label: "Химия" },
+    { id: "PHYS", label: "Физика" },
+  ];
+
+  const KEYS = {
+    ALG: [
+      { label: "√", tex: "\\sqrt{▯}" },
+      { label: "x²", tex: "^{▯}" },
+      { label: "xₙ", tex: "_{▯}" },
+      { label: "a/b", tex: "\\frac{▯}{}" },
+      { label: "∑", tex: "\\sum_{▯}^{}" },
+      { label: "∫", tex: "\\int_{▯}^{}" },
+      { label: "lim", tex: "\\lim_{▯}" },
+      { label: "∞", tex: "\\infty" },
+      { label: "π", tex: "\\pi" },
+      { label: "≤", tex: "\\leq " },
+      { label: "≥", tex: "\\geq " },
+      { label: "≠", tex: "\\neq " },
+      { label: "≈", tex: "\\approx " },
+    ],
+    CHEM: [
+      { label: "₂", tex: "_{2}" },
+      { label: "ₙ", tex: "_{▯}" },
+      { label: "→", tex: "\\rightarrow " },
+      { label: "⇌", tex: "\\rightleftharpoons " },
+      { label: "H₂O", tex: "H_2O" },
+      { label: "CO₂", tex: "CO_2" },
+      { label: "H⁺", tex: "H^{+}" },
+      { label: "OH⁻", tex: "OH^{-}" },
+    ],
+    PHYS: [
+      { label: "→в", tex: "\\vec{▯}" },
+      { label: "Δ", tex: "\\Delta " },
+      { label: "λ", tex: "\\lambda" },
+      { label: "ω", tex: "\\omega" },
+      { label: "Ω", tex: "\\Omega" },
+      { label: "∂", tex: "\\partial " },
+      { label: "∇", tex: "\\nabla " },
+      { label: "≈", tex: "\\approx " },
+      { label: "±", tex: "\\pm " },
+      { label: "°", tex: "^{\\circ}" },
+    ],
+  };
+
+  const insertKey = (tex) => onInsert(tex);
+
+  return (
+    <div
+      style={{
+        position: "sticky",
+        bottom: 0,
+        zIndex: 50,
+        background: "#fff",
+        borderTop: "1px solid #e2e8f0",
+        padding: 12,
+        marginTop: 12,
+        borderRadius: 12,
+        boxShadow: "0 -6px 20px rgba(15, 23, 42, 0.08)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                border: "1px solid #cbd5e1",
+                background: tab === t.id ? "#eef2ff" : "#fff",
+                color: tab === t.id ? "#4f46e5" : "#334155",
+                padding: "6px 10px",
+                borderRadius: 10,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            border: "1px solid #e2e8f0",
+            background: "#f8fafc",
+            color: "#334155",
+            padding: "6px 10px",
+            borderRadius: 10,
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {KEYS[tab].map((k, idx) => (
+          <button
+            key={idx}
+            onClick={() => insertKey(k.tex)}
+            style={{
+              border: "1px solid #e2e8f0",
+              background: "#fff",
+              color: "#0f172a",
+              padding: "8px 10px",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+            title={k.tex}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const TestModal = ({ testId, onClose, onSave }) => {
   const [meta, setMeta] = useState({
     name: "",
@@ -502,45 +632,217 @@ const TestModal = ({ testId, onClose, onSave }) => {
     published: true,
   });
 
+  const [kbOpen, setKbOpen] = useState(false);
+  const activeFieldRef = useRef(null);
+  const caretRef = useRef({ start: 0, end: 0 });
+
+  // ✅ ВАЖНО: один общий groupId для первого текста и первого вопроса
+  const initialPid = `p-${Date.now()}`;
+
   // Структура вопроса: text, points, image, options:[{id, text, image}]
+  // ДОБАВЛЕНО: в qs могут быть элементы "пассаж/текст" (isPassage: true)
   const [qs, setQs] = useState([
+    {
+      isPassage: true,
+      text: "",
+      image: null,
+      groupId: initialPid,
+    },
     {
       text: "",
       points: 1,
       image: null,
-      options: [
-        { id: "1", text: "", image: null },
-        { id: "2", text: "", image: null },
-        { id: "3", text: "", image: null },
-        { id: "4", text: "", image: null },
-      ],
+      groupId: initialPid, // ✅ чтобы сразу было "Вопрос 1"
+      options: Array.from({ length: 5 }, (_, i) => ({
+        id: String(i + 1),
+        text: "",
+        image: null,
+      })),
       correctAnswer: "1",
     },
   ]);
 
-  // uploadingId теперь может быть строкой "qIndex" или "qIndex-oIndex"
   const [uploadingId, setUploadingId] = useState(null);
+
+  // ✅ нормализатор: вопросы без groupId привязываем к последнему тексту сверху
+  const normalizeGroups = (arr) => {
+    let currentPid = null;
+    return arr.map((item) => {
+      if (item?.isPassage) {
+        currentPid = item.groupId || `p-${Date.now()}`;
+        return { ...item, groupId: currentPid };
+      }
+      if (!item?.isPassage) {
+        if (currentPid && !item.groupId) return { ...item, groupId: currentPid };
+        return item;
+      }
+      return item;
+    });
+  };
 
   useEffect(() => {
     if (testId) {
       fetcher(`/tests/${testId}/full`).then((d) => {
         setMeta(d.test);
+
         const loadedQs = d.questions.map((q) => ({
           text: q.text,
           points: q.points || 1,
           image: q.image || null,
-          options: Array.isArray(q.options)
-            ? q.options.map((opt) => ({ ...opt, image: opt.image || null })) // Обеспечиваем наличие поля image
-            : JSON.parse(q.options).map((opt) => ({
-                ...opt,
-                image: opt.image || null,
-              })),
+          groupId: q.groupId || null,
+          isPassage: q.isPassage || false,
+          options: (Array.isArray(q.options) ? q.options : JSON.parse(q.options)).map(
+            (opt, idx) => ({
+              id: String(opt.id ?? idx + 1),
+              text: opt.text ?? "",
+              image: opt.image || null,
+            })
+          ),
           correctAnswer: String(q.correct_answers).replace(/['"]+/g, ""),
         }));
-        setQs(loadedQs);
+
+        const hasPassage = loadedQs.some((x) => x?.isPassage);
+
+        if (!hasPassage) {
+          const pid = `p-${Date.now()}`;
+          const patched = [
+            { isPassage: true, text: "", image: null, groupId: pid },
+            ...loadedQs.map((x) => ({ ...x, groupId: x.groupId || pid })),
+          ];
+          setQs(patched.length ? patched : qs);
+        } else {
+          setQs(loadedQs.length ? normalizeGroups(loadedQs) : qs);
+        }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testId]);
+
+  const setActiveField = (meta) => (e) => {
+    activeFieldRef.current = meta;
+    const el = e.target;
+    if (typeof el.selectionStart === "number") {
+      caretRef.current = { start: el.selectionStart, end: el.selectionEnd };
+    } else {
+      caretRef.current = { start: 0, end: 0 };
+    }
+  };
+
+  const updateCaret = (e) => {
+    const el = e.target;
+    if (typeof el.selectionStart === "number") {
+      caretRef.current = { start: el.selectionStart, end: el.selectionEnd };
+    }
+  };
+
+  const insertLatexToActive = (rawTex) => {
+    const active = activeFieldRef.current;
+    if (!active) return;
+
+    const marker = "▯";
+    const markerPos = rawTex.indexOf(marker);
+    const tex = rawTex.replace(marker, "");
+
+    const { start, end } = caretRef.current;
+
+    // passage
+    if (active.kind === "p") {
+      const cur = qs[active.pi]?.text ?? "";
+      const next = cur.slice(0, start) + tex + cur.slice(end);
+
+      const n = [...qs];
+      n[active.pi].text = next;
+      setQs(n);
+
+      requestAnimationFrame(() => {
+        const el = document.querySelector(active.selector);
+        if (!el) return;
+        el.focus();
+        const nextPos = markerPos >= 0 ? start + markerPos : start + tex.length;
+        el.setSelectionRange(nextPos, nextPos);
+        caretRef.current = { start: nextPos, end: nextPos };
+      });
+      return;
+    }
+
+    // question
+    if (active.kind === "q") {
+      const cur = qs[active.qi]?.text ?? "";
+      const next = cur.slice(0, start) + tex + cur.slice(end);
+
+      const n = [...qs];
+      n[active.qi].text = next;
+      setQs(n);
+
+      requestAnimationFrame(() => {
+        const el = document.querySelector(active.selector);
+        if (!el) return;
+        el.focus();
+        const nextPos = markerPos >= 0 ? start + markerPos : start + tex.length;
+        el.setSelectionRange(nextPos, nextPos);
+        caretRef.current = { start: nextPos, end: nextPos };
+      });
+      return;
+    }
+
+    // option
+    if (active.kind === "o") {
+      const cur = qs[active.qi]?.options?.[active.oi]?.text ?? "";
+      const next = cur.slice(0, start) + tex + cur.slice(end);
+
+      const n = [...qs];
+      n[active.qi].options[active.oi].text = next;
+      setQs(n);
+
+      requestAnimationFrame(() => {
+        const el = document.querySelector(active.selector);
+        if (!el) return;
+        el.focus();
+        const nextPos = markerPos >= 0 ? start + markerPos : start + tex.length;
+        el.setSelectionRange(nextPos, nextPos);
+        caretRef.current = { start: nextPos, end: nextPos };
+      });
+    }
+  };
+
+  // последний passage сверху вниз
+  const getCurrentGroupId = () => {
+  for (let i = qs.length - 1; i >= 0; i--) {
+    if (qs[i]?.isPassage) {
+      // ✅ если почему-то groupId потерялся — восстановим
+      if (!qs[i].groupId) {
+        const pid = `p-${Date.now()}`;
+        const n = [...qs];
+        n[i] = { ...n[i], groupId: pid };
+        setQs(n);
+        return pid;
+      }
+      return qs[i].groupId;
+    }
+  }
+  // ✅ если текста вообще нет — создаём новый текст автоматически (чтобы не было “сиротских” вопросов)
+  const pid = `p-${Date.now()}`;
+  setQs([
+    { isPassage: true, text: "", image: null, groupId: pid },
+    ...qs.map((x) => (x?.isPassage ? x : { ...x, groupId: x.groupId || pid })),
+  ]);
+  return pid;
+};
+
+
+  const addPassage = () => {
+  const pid = `p-${Date.now()}`;
+  setQs([
+    ...qs,
+    {
+      isPassage: true,
+      text: "",
+      image: null,
+      groupId: pid,
+    },
+  ]);
+};
+
 
   const addQ = () =>
     setQs([
@@ -549,12 +851,12 @@ const TestModal = ({ testId, onClose, onSave }) => {
         text: "",
         points: 1,
         image: null,
-        options: [
-          { id: "1", text: "", image: null },
-          { id: "2", text: "", image: null },
-          { id: "3", text: "", image: null },
-          { id: "4", text: "", image: null },
-        ],
+        groupId: getCurrentGroupId(),
+        options: Array.from({ length: 5 }, (_, i) => ({
+          id: String(i + 1),
+          text: "",
+          image: null,
+        })),
         correctAnswer: "1",
       },
     ]);
@@ -565,14 +867,12 @@ const TestModal = ({ testId, onClose, onSave }) => {
     setQs(n);
   };
 
-  // Универсальная функция обновления опций (текст или картинка)
   const updOpt = (qi, oi, field, val) => {
     const n = [...qs];
     n[qi].options[oi][field] = val;
     setQs(n);
   };
 
-  // Загрузка картинки ВОПРОСА
   const handleQuestionImageUpload = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -594,11 +894,10 @@ const TestModal = ({ testId, onClose, onSave }) => {
     }
   };
 
-  // Загрузка картинки ОТВЕТА
   const handleOptionImageUpload = async (e, qIndex, oIndex) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploadingId(`${qIndex}-${oIndex}`); // Уникальный ID для спиннера
+    setUploadingId(`${qIndex}-${oIndex}`);
     const formData = new FormData();
     formData.append("image", file);
     try {
@@ -615,6 +914,11 @@ const TestModal = ({ testId, onClose, onSave }) => {
       setUploadingId(null);
     }
   };
+
+  // ✅ НУМЕРАЦИЯ: тексты 1..N, вопросы 1..N внутри каждого текста
+  const questionIndexByGroup = {};
+  let passageCounter = 0;
+  let looseQuestionCounter = 0;
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -633,6 +937,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
           <h3 style={styles.modalTitle}>
             {testId ? "Редактирование" : "Создание"} теста
           </h3>
+
           <div
             style={{
               display: "grid",
@@ -683,317 +988,575 @@ const TestModal = ({ testId, onClose, onSave }) => {
               fontSize: 13,
               color: "#4f46e5",
               border: "1px solid #c7d2fe",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+              alignItems: "center",
             }}
           >
-            💡 <b>Формулы:</b> Используйте LaTeX. Пример: <code>H_2O</code> →{" "}
-            <InlineMath math="H_2O" />, <code>\sqrt&#123;x^2&#125;</code> →{" "}
-            <InlineMath math="\sqrt{x^2}" />. Картинки можно добавлять и к
-            вопросам, и к ответам.
+            <div>
+              💡 <b>Формулы:</b> Используйте LaTeX. Пример: <code>H_2O</code> →{" "}
+              <InlineMath math="H_2O" />, <code>\sqrt&#123;x^2&#125;</code> →{" "}
+              <InlineMath math="\sqrt{x^2}" />. Картинки можно добавлять и к
+              вопросам, и к ответам.
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setKbOpen((v) => !v)}
+                style={{
+                  border: "1px solid #c7d2fe",
+                  background: kbOpen ? "#4f46e5" : "#ffffff",
+                  color: kbOpen ? "#ffffff" : "#4f46e5",
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+                title="Открыть виртуальную клавиатуру формул"
+              >
+                ⌨️ Формулы
+              </button>
+
+              <button
+                onClick={addPassage}
+                style={{
+                  border: "1px solid #c7d2fe",
+                  background: "#ffffff",
+                  color: "#4f46e5",
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+                title="Добавить общий текст (пассаж)"
+              >
+                + Текст
+              </button>
+
+              <button
+                onClick={addQ}
+                style={{
+                  border: "1px solid #c7d2fe",
+                  background: "#ffffff",
+                  color: "#4f46e5",
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+                title="Добавить вопрос (к последнему тексту сверху)"
+              >
+                + Вопрос
+              </button>
+            </div>
           </div>
 
-          {qs.map((q, i) => (
-            <div key={i} style={styles.questionCard}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <div
-                  style={{ fontWeight: "700", color: "#475569", fontSize: 13 }}
-                >
-                  Вопрос {i + 1}
-                </div>
-                <button
-                  onClick={() => setQs(qs.filter((_, idx) => idx !== i))}
-                  style={styles.btnLinkRed}
-                >
-                  Удалить
-                </button>
-              </div>
+          {qs.map((q, i) => {
+            // PASSAGE
+            if (q?.isPassage) {
+              const gid = q.groupId || `p-${i}`;
+              passageCounter += 1;
+              questionIndexByGroup[gid] = 0; // сброс вопросов для этого текста
 
-              {/* СЕКЦИЯ ВОПРОСА */}
-              <div style={{ display: "flex", gap: 15, marginBottom: 15 }}>
-                <div style={{ flex: 1 }}>
-                  <textarea
-                    style={{
-                      ...styles.input,
-                      minHeight: 80,
-                      fontFamily: "inherit",
-                      resize: "vertical",
-                    }}
-                    placeholder="Текст вопроса"
-                    value={q.text}
-                    onChange={(e) => updQ(i, "text", e.target.value)}
-                  />
-                  {(q.text.includes("\\") ||
-                    q.text.includes("_") ||
-                    q.text.includes("^")) && (
-                    <div
-                      style={{
-                        marginTop: 5,
-                        padding: 8,
-                        background: "#fff",
-                        borderRadius: 8,
-                        border: "1px dashed #cbd5e1",
-                        fontSize: 14,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#94a3b8",
-                          display: "block",
-                          marginBottom: 4,
-                        }}
-                      >
-                        Предпросмотр:
-                      </span>
-                      <InlineMath math={q.text} />
-                    </div>
-                  )}
-                </div>
-
+              return (
                 <div
+                  key={i}
                   style={{
-                    width: 180,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
+                    ...styles.questionCard,
+                    border: "2px solid #c7d2fe",
+                    background: "#f8fafc",
                   }}
                 >
-                  <input
-                    style={{ ...styles.input, textAlign: "center" }}
-                    type="number"
-                    value={q.points}
-                    onChange={(e) => updQ(i, "points", e.target.value)}
-                    placeholder="Балл"
-                  />
-
                   <div
                     style={{
-                      border: "1px dashed #cbd5e1",
-                      borderRadius: 12,
-                      height: 100,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: q.image ? "#f1f5f9" : "#fff",
-                      position: "relative",
-                      overflow: "hidden",
+                      justifyContent: "space-between",
+                      marginBottom: 10,
                     }}
                   >
-                    {q.image ? (
-                      <>
-                        <img
-                          src={`${UPLOADS_URL}/${q.image}`}
-                          alt="Q"
-                          style={{ maxWidth: "100%", maxHeight: "100%" }}
-                        />
-                        <button
-                          onClick={() => updQ(i, "image", null)}
+                    <div style={{ fontWeight: 800, color: "#334155", fontSize: 13 }}>
+                      Текст {passageCounter}
+                    </div>
+
+                    <button
+                      onClick={() => setQs(qs.filter((_, idx) => idx !== i))}
+                      style={styles.btnLinkRed}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 15 }}>
+                    <div style={{ flex: 1 }}>
+                      <textarea
+                        style={{
+                          ...styles.input,
+                          minHeight: 90,
+                          fontFamily: "inherit",
+                          resize: "vertical",
+                          background: "#fff",
+                        }}
+                        placeholder="Текст (пассаж/условие) для нескольких вопросов ниже"
+                        value={q.text}
+                        onChange={(e) => updQ(i, "text", e.target.value)}
+                        data-latex-id={`p-${i}`}
+                        onFocus={setActiveField({
+                          kind: "p",
+                          pi: i,
+                          selector: `[data-latex-id="p-${i}"]`,
+                        })}
+                        onClick={updateCaret}
+                        onKeyUp={updateCaret}
+                      />
+
+                      {(q.text?.includes("\\") ||
+                        q.text?.includes("_") ||
+                        q.text?.includes("^")) && (
+                        <div
                           style={{
-                            position: "absolute",
-                            top: 5,
-                            right: 5,
-                            background: "#ef4444",
-                            color: "#fff",
-                            width: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            border: "none",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 12,
+                            marginTop: 6,
+                            padding: 8,
+                            background: "#fff",
+                            borderRadius: 8,
+                            border: "1px dashed #cbd5e1",
+                            fontSize: 14,
                           }}
                         >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <label
-                        style={{
-                          cursor: "pointer",
-                          textAlign: "center",
-                          width: "100%",
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <span style={{ fontSize: 24 }}>📷</span>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>
-                          {uploadingId === `${i}` ? "..." : "Фото"}
-                        </span>
-                        <input
-                          type="file"
-                          style={{ display: "none" }}
-                          accept="image/*"
-                          onChange={(e) => handleQuestionImageUpload(e, i)}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "#94a3b8",
+                              display: "block",
+                              marginBottom: 4,
+                            }}
+                          >
+                            Предпросмотр:
+                          </span>
+                          <InlineMath math={q.text} />
+                        </div>
+                      )}
+                    </div>
 
-              {/* СЕКЦИЯ ОТВЕТОВ */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                {q.options.map((o, oi) => (
-                  <div key={oi} style={styles.optionRow}>
-                    <input
-                      type="radio"
-                      checked={String(q.correctAnswer) === String(o.id)}
-                      onChange={() => updQ(i, "correctAnswer", String(o.id))}
-                      style={{ accentColor: "#6366f1" }}
-                    />
-
-                    {/* Контейнер для инпута и кнопки фото */}
                     <div
                       style={{
-                        flex: 1,
+                        width: 180,
                         display: "flex",
                         flexDirection: "column",
+                        gap: 10,
                       }}
                     >
                       <div
                         style={{
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: 12,
+                          height: 100,
                           display: "flex",
-                          gap: 5,
                           alignItems: "center",
+                          justifyContent: "center",
+                          background: q.image ? "#f1f5f9" : "#fff",
+                          position: "relative",
+                          overflow: "hidden",
                         }}
                       >
-                        <input
-                          style={{
-                            ...styles.input,
-                            marginBottom: 0,
-                            fontSize: 13,
-                            padding: 8,
-                            flex: 1,
-                          }}
-                          placeholder={`Вариант ${oi + 1}`}
-                          value={o.text}
-                          onChange={(e) =>
-                            updOpt(i, oi, "text", e.target.value)
-                          }
-                        />
-
-                        {/* Кнопка загрузки картинки для ответа */}
-                        <div
-                          style={{
-                            position: "relative",
-                            width: 36,
-                            height: 36,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {o.image ? (
-                            <div
+                        {q.image ? (
+                          <>
+                            <img
+                              src={`${UPLOADS_URL}/${q.image}`}
+                              alt="P"
+                              style={{ maxWidth: "100%", maxHeight: "100%" }}
+                            />
+                            <button
+                              onClick={() => updQ(i, "image", null)}
                               style={{
-                                width: "100%",
-                                height: "100%",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 6,
-                                overflow: "hidden",
-                                position: "relative",
-                              }}
-                            >
-                              <img
-                                src={`${UPLOADS_URL}/${o.image}`}
-                                alt="opt"
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                              <button
-                                onClick={() => updOpt(i, oi, "image", null)}
-                                style={{
-                                  position: "absolute",
-                                  top: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  left: 0,
-                                  background: "rgba(0,0,0,0.5)",
-                                  color: "white",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  fontSize: 14,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            <label
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                border: "1px dashed #cbd5e1",
-                                borderRadius: 6,
+                                position: "absolute",
+                                top: 5,
+                                right: 5,
+                                background: "#ef4444",
+                                color: "#fff",
+                                width: 20,
+                                height: 20,
+                                borderRadius: "50%",
+                                border: "none",
+                                cursor: "pointer",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                cursor: "pointer",
-                                background: "#fff",
+                                fontSize: 12,
                               }}
-                              title="Добавить фото"
                             >
-                              <span style={{ fontSize: 16 }}>
-                                {uploadingId === `${i}-${oi}` ? ".." : "📷"}
-                              </span>
-                              <input
-                                type="file"
-                                style={{ display: "none" }}
-                                accept="image/*"
-                                onChange={(e) =>
-                                  handleOptionImageUpload(e, i, oi)
-                                }
-                              />
-                            </label>
-                          )}
-                        </div>
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <label
+                            style={{
+                              cursor: "pointer",
+                              textAlign: "center",
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <span style={{ fontSize: 24 }}>📷</span>
+                            <span style={{ fontSize: 11, color: "#64748b" }}>
+                              {uploadingId === `${i}` ? "..." : "Фото"}
+                            </span>
+                            <input
+                              type="file"
+                              style={{ display: "none" }}
+                              accept="image/*"
+                              onChange={(e) => handleQuestionImageUpload(e, i)}
+                            />
+                          </label>
+                        )}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
 
-                      {/* Предпросмотр формулы */}
-                      {(o.text.includes("\\") ||
-                        o.text.includes("_") ||
-                        o.text.includes("^")) && (
-                        <div
+            // QUESTION
+            const gid = q.groupId || null;
+
+            let displayNum = 0;
+            if (gid) {
+              questionIndexByGroup[gid] = (questionIndexByGroup[gid] || 0) + 1;
+              displayNum = questionIndexByGroup[gid];
+            } else {
+              looseQuestionCounter += 1;
+              displayNum = looseQuestionCounter;
+            }
+
+            return (
+              <div key={i} style={styles.questionCard}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <div style={{ fontWeight: "700", color: "#475569", fontSize: 13 }}>
+                    Вопрос {displayNum}
+                  </div>
+
+                  <button
+                    onClick={() => setQs(qs.filter((_, idx) => idx !== i))}
+                    style={styles.btnLinkRed}
+                  >
+                    Удалить
+                  </button>
+                </div>
+
+                {/* СЕКЦИЯ ВОПРОСА */}
+                <div style={{ display: "flex", gap: 15, marginBottom: 15 }}>
+                  <div style={{ flex: 1 }}>
+                    <textarea
+                      style={{
+                        ...styles.input,
+                        minHeight: 80,
+                        fontFamily: "inherit",
+                        resize: "vertical",
+                      }}
+                      placeholder="Текст вопроса"
+                      value={q.text}
+                      onChange={(e) => updQ(i, "text", e.target.value)}
+                      data-latex-id={`q-${i}`}
+                      onFocus={setActiveField({
+                        kind: "q",
+                        qi: i,
+                        selector: `[data-latex-id="q-${i}"]`,
+                      })}
+                      onClick={updateCaret}
+                      onKeyUp={updateCaret}
+                    />
+
+                    {(q.text.includes("\\") ||
+                      q.text.includes("_") ||
+                      q.text.includes("^")) && (
+                      <div
+                        style={{
+                          marginTop: 5,
+                          padding: 8,
+                          background: "#fff",
+                          borderRadius: 8,
+                          border: "1px dashed #cbd5e1",
+                          fontSize: 14,
+                        }}
+                      >
+                        <span
                           style={{
-                            paddingLeft: 10,
-                            fontSize: 13,
-                            color: "#475569",
+                            fontSize: 11,
+                            color: "#94a3b8",
+                            display: "block",
+                            marginBottom: 4,
                           }}
                         >
-                          <InlineMath math={o.text} />
-                        </div>
+                          Предпросмотр:
+                        </span>
+                        <InlineMath math={q.text} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      width: 180,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <input
+                      style={{ ...styles.input, textAlign: "center" }}
+                      type="number"
+                      value={q.points}
+                      onChange={(e) => updQ(i, "points", e.target.value)}
+                      placeholder="Балл"
+                    />
+
+                    <div
+                      style={{
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: 12,
+                        height: 100,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: q.image ? "#f1f5f9" : "#fff",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {q.image ? (
+                        <>
+                          <img
+                            src={`${UPLOADS_URL}/${q.image}`}
+                            alt="Q"
+                            style={{ maxWidth: "100%", maxHeight: "100%" }}
+                          />
+                          <button
+                            onClick={() => updQ(i, "image", null)}
+                            style={{
+                              position: "absolute",
+                              top: 5,
+                              right: 5,
+                              background: "#ef4444",
+                              color: "#fff",
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              border: "none",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 12,
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <label
+                          style={{
+                            cursor: "pointer",
+                            textAlign: "center",
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <span style={{ fontSize: 24 }}>📷</span>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>
+                            {uploadingId === `${i}` ? "..." : "Фото"}
+                          </span>
+                          <input
+                            type="file"
+                            style={{ display: "none" }}
+                            accept="image/*"
+                            onChange={(e) => handleQuestionImageUpload(e, i)}
+                          />
+                        </label>
                       )}
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* СЕКЦИЯ ОТВЕТОВ */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                  }}
+                >
+                  {q.options.map((o, oi) => (
+                    <div key={oi} style={styles.optionRow}>
+                      <input
+                        type="radio"
+                        checked={String(q.correctAnswer) === String(o.id)}
+                        onChange={() => updQ(i, "correctAnswer", String(o.id))}
+                        style={{ accentColor: "#6366f1" }}
+                      />
+
+                      <div
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 5,
+                            alignItems: "center",
+                          }}
+                        >
+                          <input
+                            style={{
+                              ...styles.input,
+                              marginBottom: 0,
+                              fontSize: 13,
+                              padding: 8,
+                              flex: 1,
+                            }}
+                            placeholder={`Вариант ${oi + 1}`}
+                            value={o.text}
+                            onChange={(e) => updOpt(i, oi, "text", e.target.value)}
+                            data-latex-id={`o-${i}-${oi}`}
+                            onFocus={setActiveField({
+                              kind: "o",
+                              qi: i,
+                              oi: oi,
+                              selector: `[data-latex-id="o-${i}-${oi}"]`,
+                            })}
+                            onClick={updateCaret}
+                            onKeyUp={updateCaret}
+                          />
+
+                          <div
+                            style={{
+                              position: "relative",
+                              width: 36,
+                              height: 36,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {o.image ? (
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 6,
+                                  overflow: "hidden",
+                                  position: "relative",
+                                }}
+                              >
+                                <img
+                                  src={`${UPLOADS_URL}/${o.image}`}
+                                  alt="opt"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                                <button
+                                  onClick={() => updOpt(i, oi, "image", null)}
+                                  style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    left: 0,
+                                    background: "rgba(0,0,0,0.5)",
+                                    color: "white",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    fontSize: 14,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <label
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  border: "1px dashed #cbd5e1",
+                                  borderRadius: 6,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer",
+                                  background: "#fff",
+                                }}
+                                title="Добавить фото"
+                              >
+                                <span style={{ fontSize: 16 }}>
+                                  {uploadingId === `${i}-${oi}` ? ".." : "📷"}
+                                </span>
+                                <input
+                                  type="file"
+                                  style={{ display: "none" }}
+                                  accept="image/*"
+                                  onChange={(e) => handleOptionImageUpload(e, i, oi)}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+
+                        {(o.text.includes("\\") ||
+                          o.text.includes("_") ||
+                          o.text.includes("^")) && (
+                          <div
+                            style={{
+                              paddingLeft: 10,
+                              fontSize: 13,
+                              color: "#475569",
+                            }}
+                          >
+                            <InlineMath math={o.text} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+
           <button onClick={addQ} style={styles.btnAddDashed}>
             + Добавить вопрос
           </button>
         </div>
+
+        <LatexKeyboard
+          open={kbOpen}
+          onClose={() => setKbOpen(false)}
+          onInsert={insertLatexToActive}
+        />
 
         <div style={styles.modalFooter}>
           <button onClick={onClose} style={styles.btnSecondary}>
@@ -1010,6 +1573,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
     </div>
   );
 };
+
 
 // === ANALYTICS & DASHBOARD & USERS TABS ===
 // (Код этих табов не менялся, но я включил его сюда для целостности)
