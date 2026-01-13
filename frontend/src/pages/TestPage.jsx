@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-// ProctoringSystem удален
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import {
-  CheckCircle,
-  ChevronLeft, // Оставлен, если нужен
-  ChevronRight, // Оставлен, если нужен
-  Clock,
-  ShieldCheck,
-  X as XIcon,
-} from "lucide-react";
+import { CheckCircle, Clock, ShieldCheck, X as XIcon } from "lucide-react";
 
 // === КОНСТАНТЫ ===
 const API_BASE = "http://localhost:5000/api";
@@ -98,7 +90,7 @@ const TestPage = () => {
     isFinishedRef.current = isFinished;
   }, [isFinished]);
 
-  // 1. СТАРТ ТЕСТА (Убрана проверка камеры)
+  // 1. СТАРТ ТЕСТА
   const handleStartTest = async () => {
     try {
       const rawUserId = localStorage.getItem("user_id");
@@ -118,7 +110,6 @@ const TestPage = () => {
       if (data.sessionId) setSessionId(data.sessionId);
 
       setIsTestStarted(true);
-      // Оставляем полноэкранный режим, если нужно, или можно убрать
       document.documentElement.requestFullscreen().catch(console.log);
     } catch (error) {
       console.error(error);
@@ -231,6 +222,13 @@ const TestPage = () => {
               <RichDisplay text={qReview.text} image={qReview.image} />
               <div style={s.ansGrid}>
                 {optsReview.map((opt, idx) => {
+                  // --- ПРОВЕРКА НА ПУСТОЙ ОТВЕТ (В ОБЗОРЕ) ---
+                  const hasText =
+                    opt.text && String(opt.text).trim().length > 0;
+                  const hasImage = !!opt.image;
+                  if (!hasText && !hasImage) return null;
+                  // -------------------------------------------
+
                   const oId = opt.id || idx;
                   const correctAns = String(
                     testResults?.details?.[qReview.id]?.correct_answer
@@ -343,7 +341,6 @@ const TestPage = () => {
         <div style={s.startCard}>
           <ShieldCheck size={48} color="#4f46e5" style={{ margin: "0 auto" }} />
           <h1 style={s.mainTitle}>Начать тест</h1>
-          {/* Кнопка старта сразу, без запроса камеры */}
           <button style={s.btnStart} onClick={handleStartTest}>
             🚀 Начать
           </button>
@@ -404,6 +401,17 @@ const TestPage = () => {
 
             <div style={s.ansGrid}>
               {options.map((opt, idx) => {
+                // --- ГЛАВНАЯ ПРОВЕРКА НА ПУСТОЙ ОТВЕТ ---
+                // Если текст пустой или состоит только из пробелов,
+                // И при этом нет картинки, то не рендерим этот вариант
+                const hasText = opt.text && String(opt.text).trim().length > 0;
+                const hasImage = !!opt.image;
+
+                if (!hasText && !hasImage) {
+                  return null;
+                }
+                // ----------------------------------------
+
                 const oId = opt.id || idx;
                 const isSelected = answers[currentQ.id] === oId;
                 return (
@@ -452,14 +460,12 @@ const TestPage = () => {
               </button>
             </div>
           </div>
-          {/* Боковая панель ASIDE удалена, чтобы вопросы были на всю ширину */}
         </main>
       </div>
     </div>
   );
 };
 
-// === STYLES ===
 // === STYLES ===
 const s = {
   page: {
@@ -498,7 +504,7 @@ const s = {
     maxWidth: "400px",
     width: "100%",
   },
-  mainTitle: { // Вот этот стиль, который используется в твоем куске кода
+  mainTitle: {
     fontSize: "32px",
     fontWeight: "800",
     color: "#1e293b",

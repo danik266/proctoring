@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "katex/dist/katex.min.css";
+// Если используете react-katex, убедитесь, что библиотека установлена
 import { InlineMath } from "react-katex";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -20,7 +21,6 @@ const fetcher = async (endpoint, options = {}) => {
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  // Подключаем мультиязычность
   const { t, changeLanguage, language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -666,7 +666,7 @@ const LatexKeyboard = ({ open, onClose, onInsert }) => {
 };
 
 const TestModal = ({ testId, onClose, onSave }) => {
-  // ✅ Используем хук внутри модалки, чтобы получить язык и функцию смены
+  // ✅ Используем хук внутри модалки
   const { t, language, changeLanguage } = useLanguage();
 
   const [meta, setMeta] = useState({
@@ -890,7 +890,8 @@ const TestModal = ({ testId, onClose, onSave }) => {
   const questionIndexByGroup = {};
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
+    // ИЗМЕНЕНИЕ: Убран onClick={onClose}
+    <div style={styles.modalOverlay}>
       <div
         style={{
           ...styles.modal,
@@ -903,7 +904,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ marginBottom: 20 }}>
-          {/* HEADER С КНОПКАМИ ЯЗЫКА */}
+          {/* HEADER С КНОПКАМИ ЯЗЫКА И КРЕСТИКОМ */}
           <div
             style={{
               display: "flex",
@@ -915,25 +916,45 @@ const TestModal = ({ testId, onClose, onSave }) => {
             <h3 style={{ ...styles.modalTitle, marginBottom: 0 }}>
               {testId ? t("modal_edit_test") : t("modal_create_test")}
             </h3>
-            <div style={{ display: "flex", gap: 5 }}>
-              {["RU", "KZ", "EN"].map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => changeLanguage(lang)}
-                  style={{
-                    border: "1px solid #cbd5e1",
-                    background: language === lang ? "#6366f1" : "#fff",
-                    color: language === lang ? "#fff" : "#64748b",
-                    borderRadius: 6,
-                    padding: "4px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {lang}
-                </button>
-              ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", gap: 5 }}>
+                {["RU", "KZ", "EN"].map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => changeLanguage(lang)}
+                    style={{
+                      border: "1px solid #cbd5e1",
+                      background: language === lang ? "#6366f1" : "#fff",
+                      color: language === lang ? "#fff" : "#64748b",
+                      borderRadius: 6,
+                      padding: "4px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+
+              {/* ИЗМЕНЕНИЕ: Добавлен явный крестик */}
+              <button
+                onClick={onClose}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "24px",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  lineHeight: 1,
+                  padding: "0 5px",
+                  marginLeft: 10,
+                }}
+                title={t("btn_cancel")}
+              >
+                ✕
+              </button>
             </div>
           </div>
 
@@ -1015,37 +1036,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
                 ⌨️ {t("label_formulas")}
               </button>
 
-              <button
-                onClick={addPassage}
-                style={{
-                  border: "1px solid #c7d2fe",
-                  background: "#ffffff",
-                  color: "#4f46e5",
-                  padding: "6px 10px",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                + Текст
-              </button>
-
-              <button
-                onClick={addQ}
-                style={{
-                  border: "1px solid #c7d2fe",
-                  background: "#ffffff",
-                  color: "#4f46e5",
-                  padding: "6px 10px",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                + {t("label_questions")}
-              </button>
+              {/* УБРАНЫ КНОПКИ +ТЕКСТ И +ВОПРОС ОТСЮДА */}
             </div>
           </div>
 
@@ -1326,6 +1317,51 @@ const TestModal = ({ testId, onClose, onSave }) => {
               </div>
             );
           })}
+
+          {/* НОВЫЙ БЛОК: КНОПКИ ДОБАВЛЕНИЯ ВНИЗУ */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 15,
+              marginTop: 15,
+              paddingBottom: 20,
+            }}
+          >
+            <button
+              onClick={addPassage}
+              style={{
+                ...styles.btnAddDashed,
+                marginTop: 0, // Убираем отступ, так как он есть в контейнере
+                color: "#4f46e5",
+                borderColor: "#c7d2fe",
+                background: "#eef2ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>📄</span> + Текст
+            </button>
+
+            <button
+              onClick={addQ}
+              style={{
+                ...styles.btnAddDashed,
+                marginTop: 0,
+                color: "#4f46e5",
+                borderColor: "#c7d2fe",
+                background: "#eef2ff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>❓</span> + {t("label_questions")}
+            </button>
+          </div>
         </div>
 
         <LatexKeyboard
@@ -1358,11 +1394,6 @@ const AnalyticsTab = ({ data, filters, setFilters, schools, t }) => {
       <div style={{ color: "#64748b", padding: 20 }}>{t("auth_loading")}</div>
     );
 
-  // Опции для селектов тоже можно перевести, но они приходят в props/state
-  const dateOptions = [
-    { value: "week", label: "Week" },
-    { value: "month", label: "Month" },
-  ];
   const typeOptions = [
     { value: "all", label: "All" },
     { value: "ENT", label: "ENT" },
@@ -1574,49 +1605,148 @@ const UsersTab = ({ users, onDelete, onAdd, t }) => (
   </div>
 );
 
-const SessionsTab = ({ sessions, onVideo, t }) => (
-  <div className="fade-in">
-    <div style={styles.card}>
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>ID</th>
-              <th style={styles.th}>{t("col_name")}</th>
-              <th style={styles.th}>{t("col_test")}</th>
-              <th style={styles.th}>{t("col_score")}</th>
-              <th style={styles.th}>{t("col_status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((s) => (
-              <tr key={s.id}>
-                <td style={styles.td}>{s.id}</td>
-                <td style={styles.td}>
-                  <div style={{ fontWeight: "bold", color: "#0f172a" }}>
-                    {s.user_name}
-                  </div>
-                </td>
-                <td style={styles.td}>{s.test_name}</td>
-                <td style={styles.td}>
-                  <span style={styles.scoreBadge}>{s.score}</span>
-                </td>
+// === ИЗМЕНЕННЫЙ КОМПОНЕНТ SESSIONS TAB ===
+const SessionsTab = ({ sessions, onVideo, t }) => {
+  const [searchTerm, setSearchTerm] = useState("");
 
-                <td style={styles.td}>
-                  {s.end_time ? (
-                    <StatusBadge status="completed" t={t} />
-                  ) : (
-                    <StatusBadge status="active" t={t} />
-                  )}
-                </td>
+  // Логика фильтрации
+  const filteredSessions = sessions.filter((s) => {
+    const term = searchTerm.toLowerCase();
+    const name = s.user_name ? s.user_name.toLowerCase() : "";
+    const school = s.school ? s.school.toLowerCase() : "";
+    const className = s.class ? s.class.toLowerCase() : "";
+
+    return (
+      name.includes(term) || school.includes(term) || className.includes(term)
+    );
+  });
+
+  return (
+    <div className="fade-in">
+      {/* Панель поиска */}
+      <div style={styles.toolbar}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <div style={{ position: "relative", width: 400, maxWidth: "100%" }}>
+            <input
+              type="text"
+              placeholder="Поиск по фамилии, школе или классу..."
+              style={{ ...styles.searchBox, width: "100%" }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: 12,
+                top: 12,
+                opacity: 0.5,
+                fontSize: 14,
+              }}
+            >
+              🔍
+            </span>
+          </div>
+          <div style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>
+            Найдено: {filteredSessions.length}
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>{t("col_name")}</th>
+                {/* Новая колонка Школа/Класс */}
+                <th style={styles.th}>{t("col_school")} / Класс</th>
+                <th style={styles.th}>{t("col_test")}</th>
+                <th style={styles.th}>{t("col_score")}</th>
+                <th style={styles.th}>{t("col_status")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredSessions.length > 0 ? (
+                filteredSessions.map((s) => (
+                  <tr key={s.id}>
+                    <td style={styles.td}>{s.id}</td>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: "bold", color: "#0f172a" }}>
+                        {s.user_name}
+                      </div>
+                    </td>
+                    {/* Отображение Школы и Класса */}
+                    <td style={styles.td}>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: "#334155",
+                          }}
+                        >
+                          {s.school || "—"}
+                        </span>
+                        {s.class && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "#6366f1",
+                              background: "#eef2ff",
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              width: "fit-content",
+                              marginTop: 4,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {s.class} класс
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={styles.td}>{s.test_name}</td>
+                    <td style={styles.td}>
+                      <span style={styles.scoreBadge}>{s.score}</span>
+                    </td>
+                    <td style={styles.td}>
+                      {s.end_time ? (
+                        <StatusBadge status="completed" t={t} />
+                      ) : (
+                        <StatusBadge status="active" t={t} />
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="6"
+                    style={{
+                      padding: 30,
+                      textAlign: "center",
+                      color: "#94a3b8",
+                    }}
+                  >
+                    Сессии не найдены
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const UserModal = ({ onClose, onSave, schools = [], t }) => {
   const [form, setForm] = useState({
@@ -1666,7 +1796,6 @@ const UserModal = ({ onClose, onSave, schools = [], t }) => {
             <option value="admin">{t("admin_role")}</option>
           </select>
         </div>
-        {/* Дополнительные поля для студента опущены для краткости, они аналогичны */}
 
         <div style={styles.modalFooter}>
           <button onClick={onClose} style={styles.btnSecondary}>
@@ -1681,7 +1810,7 @@ const UserModal = ({ onClose, onSave, schools = [], t }) => {
   );
 };
 
-// === GLOBAL & STYLES (Остаются без изменений, кроме StatCard, StatusBadge) ===
+// === GLOBAL & STYLES ===
 
 const StatusBadge = ({ status, t }) => (
   <span
@@ -1707,9 +1836,6 @@ const StatCard = ({ title, value, subtitle, icon, color }) => (
     </div>
   </div>
 );
-
-// ... GlobalStyles, styles, CustomSelect, Icons (те же самые, что и были) ...
-// (Вставьте сюда styles, GlobalStyles и компоненты иконок из вашего исходного кода)
 
 const GlobalStyles = () => (
   <style>{`
