@@ -117,6 +117,64 @@ const translations = {
     btn_start_pisa: "Начать PISA",
     pisa_empty: "Тесты PISA пока не добавлены.",
     nav_profile: "Профиль",
+    // --- ADMIN PANEL ---
+    admin_dashboard: "Дашборд",
+    admin_analytics: "Аналитика",
+    admin_users: "Пользователи",
+    admin_tests: "Тесты",
+    admin_sessions: "Сессии",
+    admin_panel_title: "Панель управления",
+    admin_reports_title: "Отчеты и Аналитика",
+    admin_system_name: "Система тестирования JANA TEST",
+    admin_role: "Администратор",
+
+    // Кнопки
+    btn_create_test: "+ Создать тест",
+    btn_add_user: "+ Добавить пользователя",
+    btn_save: "Сохранить",
+    btn_cancel: "Отмена",
+    btn_delete: "Удалить",
+    btn_edit: "Редактировать",
+    btn_excel: "Скачать Excel",
+    btn_print: "Печать / PDF",
+
+    // Действия и статусы
+    confirm_logout: "Выйти из системы?",
+    confirm_delete: "Подтвердите удаление",
+    status_active: "Активен",
+    status_hidden: "Скрыт",
+    status_completed: "Завершен",
+
+    // Таблицы и Поля
+    col_name: "Имя",
+    col_test: "Тест",
+    col_score: "Балл",
+    col_status: "Статус",
+    col_role: "Роль",
+    col_school: "Школа / Класс",
+    col_actions: "Действия",
+    search_placeholder: "Поиск...",
+
+    // Уведомления
+    msg_deleted: "Успешно удалено",
+    msg_published: "Тест опубликован",
+    msg_hidden: "Тест скрыт",
+    msg_saved: "Успешно сохранено",
+
+    // Статистика
+    stat_students: "Студенты",
+    stat_active_tests: "Активные тесты",
+    stat_violations: "Нарушения",
+    stat_total_sessions: "Сессии",
+
+    // Модальные окна
+    modal_new_user: "Новый пользователь",
+    modal_edit_test: "Редактирование теста",
+    modal_create_test: "Создание теста",
+    label_subject: "Предмет",
+    label_duration: "Мин",
+    label_formulas: "Формулы",
+    label_questions: "Вопросы",
   },
 
   KZ: {
@@ -235,6 +293,64 @@ const translations = {
     btn_start_pisa: "PISA бастау",
     pisa_empty: "PISA тесттері әзірге қосылмаған.",
     nav_profile: "Профиль",
+    // --- ADMIN PANEL ---
+    admin_dashboard: "Дашборд",
+    admin_analytics: "Талдау",
+    admin_users: "Пайдаланушылар",
+    admin_tests: "Тесттер",
+    admin_sessions: "Сессиялар",
+    admin_panel_title: "Басқару панелі",
+    admin_reports_title: "Есептер мен Талдау",
+    admin_system_name: "JANA TEST жүйесі",
+    admin_role: "Әкімші",
+
+    // Кнопки
+    btn_create_test: "+ Тест құру",
+    btn_add_user: "+ Қолданушы қосу",
+    btn_save: "Сақтау",
+    btn_cancel: "Болдырмау",
+    btn_delete: "Жою",
+    btn_edit: "Өңдеу",
+    btn_excel: "Excel жүктеу",
+    btn_print: "Басып шығару",
+
+    // Действия и статусы
+    confirm_logout: "Жүйеден шығуды растайсыз ба?",
+    confirm_delete: "Жоюды растаңыз",
+    status_active: "Белсенді",
+    status_hidden: "Жасырын",
+    status_completed: "Аяқталды",
+
+    // Таблицы и Поля
+    col_name: "Аты-жөні",
+    col_test: "Тест",
+    col_score: "Ұпай",
+    col_status: "Күйі",
+    col_role: "Рөлі",
+    col_school: "Мектеп / Сынып",
+    col_actions: "Әрекеттер",
+    search_placeholder: "Іздеу...",
+
+    // Уведомления
+    msg_deleted: "Сәтті жойылды",
+    msg_published: "Тест жарияланды",
+    msg_hidden: "Тест жасырылды",
+    msg_saved: "Сәтті сақталды",
+
+    // Статистика
+    stat_students: "Студенттер",
+    stat_active_tests: "Белсенді тесттер",
+    stat_violations: "Бұзушылықтар",
+    stat_total_sessions: "Сессиялар",
+
+    // Модальные окна
+    modal_new_user: "Жаңа қолданушы",
+    modal_edit_test: "Тестті өңдеу",
+    modal_create_test: "Тест құру",
+    label_subject: "Пән",
+    label_duration: "Мин",
+    label_formulas: "Формулалар",
+    label_questions: "Сұрақтар",
   },
 
   EN: {
@@ -352,6 +468,64 @@ const translations = {
     btn_start_pisa: "Start PISA",
     pisa_empty: "PISA tests not added yet.",
     nav_profile: "Profile",
+    // --- ADMIN PANEL ---
+    admin_dashboard: "Dashboard",
+    admin_analytics: "Analytics",
+    admin_users: "Users",
+    admin_tests: "Tests",
+    admin_sessions: "Sessions",
+    admin_panel_title: "Control Panel",
+    admin_reports_title: "Reports & Analytics",
+    admin_system_name: "JANA TEST System",
+    admin_role: "Administrator",
+
+    // Кнопки
+    btn_create_test: "+ Create Test",
+    btn_add_user: "+ Add User",
+    btn_save: "Save",
+    btn_cancel: "Cancel",
+    btn_delete: "Delete",
+    btn_edit: "Edit",
+    btn_excel: "Download Excel",
+    btn_print: "Print / PDF",
+
+    // Действия и статусы
+    confirm_logout: "Log out from system?",
+    confirm_delete: "Confirm deletion",
+    status_active: "Active",
+    status_hidden: "Hidden",
+    status_completed: "Completed",
+
+    // Таблицы и Поля
+    col_name: "Name",
+    col_test: "Test",
+    col_score: "Score",
+    col_status: "Status",
+    col_role: "Role",
+    col_school: "School / Class",
+    col_actions: "Actions",
+    search_placeholder: "Search...",
+
+    // Уведомления
+    msg_deleted: "Successfully deleted",
+    msg_published: "Test published",
+    msg_hidden: "Test hidden",
+    msg_saved: "Successfully saved",
+
+    // Статистика
+    stat_students: "Students",
+    stat_active_tests: "Active Tests",
+    stat_violations: "Violations",
+    stat_total_sessions: "Sessions",
+
+    // Модальные окна
+    modal_new_user: "New User",
+    modal_edit_test: "Edit Test",
+    modal_create_test: "Create Test",
+    label_subject: "Subject",
+    label_duration: "Min",
+    label_formulas: "Formulas",
+    label_questions: "Questions",
   },
 };
 
