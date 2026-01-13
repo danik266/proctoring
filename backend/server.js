@@ -139,10 +139,12 @@ app.post("/api/admin/tests", async (req, res) => {
     const testId = testRes.rows[0].id;
 
     for (const q of questions) {
+      // ✅ ИСПРАВЛЕНО: Теперь берем q.type, а не жестко 'single'
       await pool.query(
-        "INSERT INTO questions (test_id, type, text, points, correct_answers, options, image) VALUES ($1, 'single', $2, $3, $4, $5, $6)",
+        "INSERT INTO questions (test_id, type, text, points, correct_answers, options, image) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         [
           testId,
+          q.type || "multiple_choice", // Берем тип с фронта
           q.text,
           q.points,
           JSON.stringify(q.correctAnswer),
@@ -191,10 +193,12 @@ app.put("/api/admin/tests/:id", async (req, res) => {
     await pool.query("DELETE FROM questions WHERE test_id=$1", [id]);
 
     for (const q of questions) {
+      // ✅ ИСПРАВЛЕНО: Теперь берем q.type, а не жестко 'single'
       await pool.query(
-        "INSERT INTO questions (test_id, type, text, points, correct_answers, options, image) VALUES ($1, 'single', $2, $3, $4, $5, $6)",
+        "INSERT INTO questions (test_id, type, text, points, correct_answers, options, image) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         [
           id,
+          q.type || "multiple_choice", // Берем тип с фронта
           q.text,
           q.points,
           JSON.stringify(q.correctAnswer),
@@ -272,7 +276,7 @@ app.post("/api/tests/start", async (req, res) => {
 app.get("/api/tests/:testId/questions", async (req, res) => {
   const { testId } = req.params;
   try {
-    // 🔥🔥🔥 ВОТ ЗДЕСЬ ДОБАВЛЕНО image В ЗАПРОС 🔥🔥🔥
+    // 🔥🔥🔥 ВОТ ЗДЕСЬ ДОБАВЛЕНО image и TYPE В ЗАПРОС 🔥🔥🔥
     const result = await pool.query(
       "SELECT id, text, type, points, options, image FROM questions WHERE test_id = $1 ORDER BY id ASC",
       [testId]
@@ -293,7 +297,7 @@ app.post("/api/tests/submit", async (req, res) => {
   try {
     await pool.query("BEGIN");
     const questionsDb = await pool.query(
-      "SELECT id, points, correct_answers FROM questions WHERE test_id = $1",
+      "SELECT id, points, correct_answers, type FROM questions WHERE test_id = $1",
       [test_id]
     );
     const questionsMap = new Map();
@@ -313,11 +317,27 @@ app.post("/api/tests/submit", async (req, res) => {
         correctAnswer = null;
       if (dbQ) {
         correctAnswer = dbQ.correct_answers;
-        if (String(ans.answer_text).trim() === String(correctAnswer).trim()) {
-          pointsAwarded = dbQ.points || 1;
-          currentScore += pointsAwarded;
-          isCorrect = true;
+        // ЛОГИКА ПРОВЕРКИ
+        if (dbQ.type === "open_ended") {
+          // Проверка по ключевым словам (разделитель ;)
+          const userText = String(ans.answer_text).trim().toLowerCase();
+          const keys = String(correctAnswer)
+            .split(";")
+            .map((k) => k.trim().toLowerCase());
+          if (keys.includes(userText)) {
+            pointsAwarded = dbQ.points || 1;
+            currentScore += pointsAwarded;
+            isCorrect = true;
+          }
+        } else {
+          // Обычная проверка (по ID или точному совпадению)
+          if (String(ans.answer_text).trim() === String(correctAnswer).trim()) {
+            pointsAwarded = dbQ.points || 1;
+            currentScore += pointsAwarded;
+            isCorrect = true;
+          }
         }
+
         resultDetails[ans.question_id] = {
           correct_answer: correctAnswer,
           is_correct: isCorrect,

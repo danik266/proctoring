@@ -682,14 +682,11 @@ const TestModal = ({ testId, onClose, onSave }) => {
   const caretRef = useRef({ start: 0, end: 0 });
 
   const initialPid = `p-${Date.now()}`;
+
+  // 🔥 ИСПРАВЛЕНО: УБРАН ЛИШНИЙ "ПАССАЖ" ПО УМОЛЧАНИЮ 🔥
   const [qs, setQs] = useState([
     {
-      isPassage: true,
-      text: "",
-      image: null,
-      groupId: initialPid,
-    },
-    {
+      type: "multiple_choice", // Инициализация типа
       text: "",
       points: 1,
       image: null,
@@ -699,7 +696,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
         text: "",
         image: null,
       })),
-      correctAnswer: "1",
+      correctAnswer: "", // 🔥 БЫЛО "1", СТАЛО ПУСТО
     },
   ]);
 
@@ -726,6 +723,8 @@ const TestModal = ({ testId, onClose, onSave }) => {
       fetcher(`/tests/${testId}/full`).then((d) => {
         setMeta(d.test);
         const loadedQs = d.questions.map((q) => ({
+          // ✅ ИСПРАВЛЕНО: Если это текст (isPassage), то type ставим 'text_only'
+          type: q.isPassage ? "text_only" : q.type || "multiple_choice",
           text: q.text,
           points: q.points || 1,
           image: q.image || null,
@@ -746,7 +745,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
         if (!hasPassage) {
           const pid = `p-${Date.now()}`;
           const patched = [
-            { isPassage: true, text: "", image: null, groupId: pid },
+            // УБРАЛ ДОБАВЛЕНИЕ ПАССАЖА СЮДА, ЧТОБЫ НЕ ПОРТИЛО СТАРЫЕ ТЕСТЫ
             ...loadedQs.map((x) => ({ ...x, groupId: x.groupId || pid })),
           ];
           setQs(patched.length ? patched : qs);
@@ -814,13 +813,24 @@ const TestModal = ({ testId, onClose, onSave }) => {
 
   const addPassage = () => {
     const pid = `p-${Date.now()}`;
-    setQs([...qs, { isPassage: true, text: "", image: null, groupId: pid }]);
+    // ✅ ИСПРАВЛЕНО: Добавляем type: 'text_only'
+    setQs([
+      ...qs,
+      {
+        type: "text_only",
+        isPassage: true,
+        text: "",
+        image: null,
+        groupId: pid,
+      },
+    ]);
   };
 
   const addQ = () =>
     setQs([
       ...qs,
       {
+        type: "multiple_choice", // Новый тип по умолчанию
         text: "",
         points: 1,
         image: null,
@@ -830,7 +840,7 @@ const TestModal = ({ testId, onClose, onSave }) => {
           text: "",
           image: null,
         })),
-        correctAnswer: "1",
+        correctAnswer: "", // 🔥 БЫЛО "1", СТАЛО ПУСТО
       },
     ]);
 
@@ -1100,11 +1110,34 @@ const TestModal = ({ testId, onClose, onSave }) => {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 10,
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>
-                    Question {displayNum}
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>
+                      Question {displayNum}
+                    </div>
+                    {/* --- Переключатель типа вопроса --- */}
+                    <select
+                      value={q.type || "multiple_choice"}
+                      onChange={(e) => updQ(i, "type", e.target.value)}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #cbd5e1",
+                        fontSize: 12,
+                        background: "#fff",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        color: "#475569",
+                      }}
+                    >
+                      <option value="multiple_choice">Выбор ответа</option>
+                      <option value="open_ended">Ввод ответа (Текст)</option>
+                    </select>
                   </div>
                   <button
                     onClick={() => setQs(qs.filter((_, idx) => idx !== i))}
@@ -1208,112 +1241,162 @@ const TestModal = ({ testId, onClose, onSave }) => {
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                    marginTop: 5,
-                  }}
-                >
-                  {q.options.map((o, oi) => (
-                    <div key={oi} style={styles.optionRow}>
-                      <input
-                        type="radio"
-                        checked={String(q.correctAnswer) === String(o.id)}
-                        onChange={() => updQ(i, "correctAnswer", String(o.id))}
-                      />
-                      <div
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                        }}
-                      >
+                {/* --- УСЛОВНЫЙ РЕНДЕР ТИПА ВОПРОСА --- */}
+                {q.type === "open_ended" ? (
+                  <div
+                    style={{
+                      background: "#fff7ed",
+                      border: "1px solid #fed7aa",
+                      padding: "12px",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "bold",
+                        color: "#c2410c",
+                        marginBottom: 5,
+                      }}
+                    >
+                      🔑 Ключи для авто-проверки (Ученик это не видит)
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#9a3412",
+                        marginBottom: 8,
+                      }}
+                    >
+                      Напишите правильные ответы через точку с запятой (;).
+                      <br />
+                      Например: <i>Пушкин; А.С. Пушкин; Александр Сергеевич</i>
+                      <br />
+                      Если оставить пустым — любой ответ будет требовать ручной
+                      проверки.
+                    </div>
+                    <input
+                      style={{ ...styles.input, borderColor: "#fdba74" }}
+                      placeholder="Введите правильные варианты..."
+                      value={q.correctAnswer || ""}
+                      onChange={(e) => updQ(i, "correctAnswer", e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  /* ВАРИАНТЫ ОТВЕТОВ (Multiple Choice) */
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
+                      marginTop: 5,
+                    }}
+                  >
+                    {q.options.map((o, oi) => (
+                      <div key={oi} style={styles.optionRow}>
                         <input
-                          style={{
-                            ...styles.input,
-                            marginBottom: 0,
-                            padding: 8,
-                          }}
-                          value={o.text}
-                          onChange={(e) =>
-                            updOpt(i, oi, "text", e.target.value)
+                          type="radio"
+                          checked={String(q.correctAnswer) === String(o.id)}
+                          onChange={() =>
+                            updQ(i, "correctAnswer", String(o.id))
                           }
-                          placeholder={`Option ${oi + 1}`}
-                          onFocus={setActiveField({ kind: "o", qi: i, oi: oi })}
-                          onClick={updateCaret}
-                          onKeyUp={updateCaret}
                         />
                         <div
                           style={{
-                            width: 36,
-                            height: 36,
-                            flexShrink: 0,
-                            border: "1px dashed #cbd5e1",
-                            borderRadius: 6,
-                            position: "relative",
-                            overflow: "hidden",
-                            background: "#fff",
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
                           }}
                         >
-                          {o.image ? (
-                            <>
-                              <img
-                                src={`${UPLOADS_URL}/${o.image}`}
-                                alt="opt"
+                          <input
+                            style={{
+                              ...styles.input,
+                              marginBottom: 0,
+                              padding: 8,
+                            }}
+                            value={o.text}
+                            onChange={(e) =>
+                              updOpt(i, oi, "text", e.target.value)
+                            }
+                            placeholder={`Option ${oi + 1}`}
+                            onFocus={setActiveField({
+                              kind: "o",
+                              qi: i,
+                              oi: oi,
+                            })}
+                            onClick={updateCaret}
+                            onKeyUp={updateCaret}
+                          />
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              flexShrink: 0,
+                              border: "1px dashed #cbd5e1",
+                              borderRadius: 6,
+                              position: "relative",
+                              overflow: "hidden",
+                              background: "#fff",
+                            }}
+                          >
+                            {o.image ? (
+                              <>
+                                <img
+                                  src={`${UPLOADS_URL}/${o.image}`}
+                                  alt="opt"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                                <button
+                                  onClick={() => updOpt(i, oi, "image", null)}
+                                  style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    left: 0,
+                                    background: "rgba(0,0,0,0.5)",
+                                    color: "white",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    fontSize: 14,
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </>
+                            ) : (
+                              <label
                                 style={{
                                   width: "100%",
                                   height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                              <button
-                                onClick={() => updOpt(i, oi, "image", null)}
-                                style={{
-                                  position: "absolute",
-                                  top: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  left: 0,
-                                  background: "rgba(0,0,0,0.5)",
-                                  color: "white",
-                                  border: "none",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   cursor: "pointer",
-                                  fontSize: 14,
                                 }}
                               >
-                                ✕
-                              </button>
-                            </>
-                          ) : (
-                            <label
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                              }}
-                            >
-                              <span style={{ fontSize: 16 }}>📷</span>
-                              <input
-                                type="file"
-                                style={{ display: "none" }}
-                                accept="image/*"
-                                onChange={(e) =>
-                                  handleOptionImageUpload(e, i, oi)
-                                }
-                              />
-                            </label>
-                          )}
+                                <span style={{ fontSize: 16 }}>📷</span>
+                                <input
+                                  type="file"
+                                  style={{ display: "none" }}
+                                  accept="image/*"
+                                  onChange={(e) =>
+                                    handleOptionImageUpload(e, i, oi)
+                                  }
+                                />
+                              </label>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -8,10 +8,9 @@ import { CheckCircle, Clock, ShieldCheck, X as XIcon } from "lucide-react";
 const API_BASE = "http://localhost:5000/api";
 const UPLOADS_URL = "http://localhost:5000/uploads";
 
-// === КОМПОНЕНТ ОТОБРАЖЕНИЯ (Безопасный) ===
+// === КОМПОНЕНТ ОТОБРАЖЕНИЯ ===
 const RichDisplay = ({ text, image, isOption = false }) => {
   const safeText = text !== null && text !== undefined ? String(text) : "";
-
   const hasMath =
     safeText &&
     (safeText.includes("\\") ||
@@ -40,7 +39,6 @@ const RichDisplay = ({ text, image, isOption = false }) => {
           )}
         </div>
       )}
-
       {/* Картинка */}
       {image && (
         <div style={{ marginTop: 5 }}>
@@ -79,11 +77,9 @@ const TestPage = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [testResults, setTestResults] = useState(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
-
   const [timeLeft, setTimeLeft] = useState(7200);
   const [showModal, setShowModal] = useState(false);
 
-  // --- REFS ---
   const isFinishedRef = useRef(false);
 
   useEffect(() => {
@@ -110,7 +106,7 @@ const TestPage = () => {
       if (data.sessionId) setSessionId(data.sessionId);
 
       setIsTestStarted(true);
-      document.documentElement.requestFullscreen().catch(console.log);
+      document.documentElement.requestFullscreen().catch(() => {});
     } catch (error) {
       console.error(error);
       alert("Не удалось начать тест");
@@ -124,6 +120,7 @@ const TestPage = () => {
       .then((d) => {
         const formatted = d.map((q) => ({
           ...q,
+          type: q.type || "multiple_choice",
           image: q.image || null,
           options:
             typeof q.options === "string" ? JSON.parse(q.options) : q.options,
@@ -186,7 +183,6 @@ const TestPage = () => {
     }
   };
 
-  // --- РЕНДЕР ---
   if (isLoading)
     return (
       <div style={s.loader}>
@@ -196,16 +192,34 @@ const TestPage = () => {
     );
 
   if (isTestStarted && (!questions || questions.length === 0)) {
-    return (
-      <div style={s.loader}>Ошибка: Вопросы не найдены. Проверьте сервер.</div>
-    );
+    return <div style={s.loader}>Ошибка: Вопросы не найдены.</div>;
   }
 
-  // Экран результатов
+  // === ЭКРАН РЕЗУЛЬТАТОВ (ОБЗОР) ===
   if (isFinished) {
     if (isReviewMode) {
       const qReview = questions[currentQuestion];
       const optsReview = qReview?.options || [];
+      const correctAnsStr = String(
+        testResults?.details?.[qReview.id]?.correct_answer || ""
+      );
+      const userAnsStr = String(answers[qReview.id] || "");
+
+      // Определение типа вопроса для обзора
+      const isInputType =
+        qReview.type === "open_ended" || !optsReview || optsReview.length === 0;
+
+      // Если это просто текст, не показываем ничего
+      const isTextOnly = qReview.type === "text_only";
+
+      let isTextCorrect = false;
+      if (isInputType && !isTextOnly) {
+        const variants = correctAnsStr
+          .split(";")
+          .map((v) => v.trim().toLowerCase());
+        isTextCorrect = variants.includes(userAnsStr.trim().toLowerCase());
+      }
+
       return (
         <div style={s.page}>
           <header style={s.header}>
@@ -220,58 +234,118 @@ const TestPage = () => {
                 <span style={s.qBadge}>Вопрос {currentQuestion + 1}</span>
               </div>
               <RichDisplay text={qReview.text} image={qReview.image} />
-              <div style={s.ansGrid}>
-                {optsReview.map((opt, idx) => {
-                  // --- ПРОВЕРКА НА ПУСТОЙ ОТВЕТ (В ОБЗОРЕ) ---
-                  const hasText =
-                    opt.text && String(opt.text).trim().length > 0;
-                  const hasImage = !!opt.image;
-                  if (!hasText && !hasImage) return null;
-                  // -------------------------------------------
 
-                  const oId = opt.id || idx;
-                  const correctAns = String(
-                    testResults?.details?.[qReview.id]?.correct_answer
-                  );
-                  const userAns = String(answers[qReview.id]);
-                  const isCorrect = String(oId) === correctAns;
-                  const isWrong = String(oId) === userAns && !isCorrect;
-
-                  let bg = "#fff";
-                  let border = "#e2e8f0";
-                  if (isCorrect) {
-                    bg = "#dcfce7";
-                    border = "#22c55e";
-                  } else if (isWrong) {
-                    bg = "#fee2e2";
-                    border = "#ef4444";
-                  }
-
-                  return (
+              <div style={{ marginTop: 20 }}>
+                {isTextOnly ? null : isInputType ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 15,
+                    }}
+                  >
                     <div
-                      key={idx}
                       style={{
-                        ...s.card,
-                        background: bg,
-                        border: `1px solid ${border}`,
-                        cursor: "default",
+                        padding: 15,
+                        borderRadius: 12,
+                        border: `2px solid ${
+                          isTextCorrect ? "#22c55e" : "#ef4444"
+                        }`,
+                        background: isTextCorrect ? "#f0fdf4" : "#fef2f2",
                       }}
                     >
-                      <div style={s.letter}>
-                        {String.fromCharCode(65 + idx)}
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "bold",
+                          color: "#64748b",
+                          marginBottom: 5,
+                        }}
+                      >
+                        ВАШ ОТВЕТ:
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <RichDisplay
-                          text={opt.text}
-                          image={opt.image}
-                          isOption={true}
-                        />
+                      <div style={{ fontSize: 16, fontWeight: 500 }}>
+                        {userAnsStr || "(нет ответа)"}
                       </div>
-                      {isCorrect && <CheckCircle color="#15803d" />}
-                      {isWrong && <XIcon color="#b91c1c" />}
                     </div>
-                  );
-                })}
+                    {!isTextCorrect && (
+                      <div
+                        style={{
+                          padding: 15,
+                          borderRadius: 12,
+                          border: "1px dashed #cbd5e1",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "bold",
+                            color: "#64748b",
+                            marginBottom: 5,
+                          }}
+                        >
+                          ПРАВИЛЬНЫЙ ОТВЕТ:
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 500,
+                            color: "#0f172a",
+                          }}
+                        >
+                          {correctAnsStr.split(";")[0]}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={s.ansGrid}>
+                    {optsReview.map((opt, idx) => {
+                      const hasText =
+                        opt.text && String(opt.text).trim().length > 0;
+                      const hasImage = !!opt.image;
+                      if (!hasText && !hasImage) return null;
+                      const oId = opt.id || idx;
+                      const isCorrect = String(oId) === correctAnsStr;
+                      const isWrong = String(oId) === userAnsStr && !isCorrect;
+                      let bg = isCorrect
+                        ? "#dcfce7"
+                        : isWrong
+                        ? "#fee2e2"
+                        : "#fff";
+                      let border = isCorrect
+                        ? "#22c55e"
+                        : isWrong
+                        ? "#ef4444"
+                        : "#e2e8f0";
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            ...s.card,
+                            background: bg,
+                            border: `1px solid ${border}`,
+                            cursor: "default",
+                          }}
+                        >
+                          <div style={s.letter}>
+                            {String.fromCharCode(65 + idx)}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <RichDisplay
+                              text={opt.text}
+                              image={opt.image}
+                              isOption={true}
+                            />
+                          </div>
+                          {isCorrect && <CheckCircle color="#15803d" />}
+                          {isWrong && <XIcon color="#b91c1c" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div style={s.nav}>
                 <button
@@ -294,7 +368,6 @@ const TestPage = () => {
         </div>
       );
     }
-
     return (
       <div style={s.statusPage}>
         <div style={s.statusCard}>
@@ -355,6 +428,14 @@ const TestPage = () => {
   const options = currentQ.options || [];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
+  // 🔥 ОПРЕДЕЛЯЕМ: Показывать поле ввода или варианты?
+  // 1. Это НЕ должен быть тип 'text_only'
+  // 2. ИЛИ тип open_ended, ИЛИ нет вариантов (защита)
+  const isTextOnly = currentQ.type === "text_only";
+  const showInput =
+    !isTextOnly &&
+    (currentQ.type === "open_ended" || !options || options.length === 0);
+
   return (
     <div style={s.page}>
       {showModal && (
@@ -394,49 +475,75 @@ const TestPage = () => {
               </span>
             </div>
 
-            {/* ВОПРОС */}
+            {/* ТЕКСТ ВОПРОСА */}
             <div style={s.qText}>
               <RichDisplay text={currentQ.text} image={currentQ.image} />
             </div>
 
-            <div style={s.ansGrid}>
-              {options.map((opt, idx) => {
-                // --- ГЛАВНАЯ ПРОВЕРКА НА ПУСТОЙ ОТВЕТ ---
-                // Если текст пустой или состоит только из пробелов,
-                // И при этом нет картинки, то не рендерим этот вариант
-                const hasText = opt.text && String(opt.text).trim().length > 0;
-                const hasImage = !!opt.image;
-
-                if (!hasText && !hasImage) {
-                  return null;
-                }
-                // ----------------------------------------
-
-                const oId = opt.id || idx;
-                const isSelected = answers[currentQ.id] === oId;
-                return (
-                  <div
-                    key={idx}
-                    style={isSelected ? s.cardActive : s.card}
-                    onClick={() =>
-                      setAnswers((p) => ({ ...p, [currentQ.id]: oId }))
-                    }
-                  >
-                    <div style={isSelected ? s.letterActive : s.letter}>
-                      {String.fromCharCode(65 + idx)}
+            {/* 🔥 ПОЛЕ ВВОДА (Сразу под вопросом) */}
+            {showInput ? (
+              <div style={{ marginTop: 20 }}>
+                <div
+                  style={{
+                    marginBottom: 8,
+                    fontWeight: 600,
+                    color: "#64748b",
+                  }}
+                >
+                  Ваш ответ:
+                </div>
+                <textarea
+                  style={s.textArea}
+                  placeholder="Введите текст ответа здесь..."
+                  value={answers[currentQ.id] || ""}
+                  onChange={(e) =>
+                    setAnswers((p) => ({ ...p, [currentQ.id]: e.target.value }))
+                  }
+                />
+              </div>
+            ) : isTextOnly ? (
+              // 🔥 ЕСЛИ ЭТО ПРОСТО ТЕКСТ - НИЧЕГО НЕ РИСУЕМ СНИЗУ 🔥
+              <div style={{ marginTop: 20, color: "#94a3b8", fontSize: 14 }}>
+                (Информационный текст, переходите к следующему вопросу)
+              </div>
+            ) : (
+              /* ВАРИАНТЫ ОТВЕТОВ */
+              <div style={s.ansGrid}>
+                {options.map((opt, idx) => {
+                  const hasText =
+                    opt.text && String(opt.text).trim().length > 0;
+                  const hasImage = !!opt.image;
+                  if (!hasText && !hasImage) return null;
+                  const oId = opt.id || idx;
+                  const isSelected =
+                    String(answers[currentQ.id]) === String(oId);
+                  return (
+                    <div
+                      key={idx}
+                      style={isSelected ? s.cardActive : s.card}
+                      onClick={() =>
+                        setAnswers((p) => ({
+                          ...p,
+                          [currentQ.id]: String(oId),
+                        }))
+                      }
+                    >
+                      <div style={isSelected ? s.letterActive : s.letter}>
+                        {String.fromCharCode(65 + idx)}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <RichDisplay
+                          text={opt.text}
+                          image={opt.image}
+                          isOption={true}
+                        />
+                      </div>
+                      {isSelected && <CheckCircle color="#6366f1" />}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <RichDisplay
-                        text={opt.text}
-                        image={opt.image}
-                        isOption={true}
-                      />
-                    </div>
-                    {isSelected && <CheckCircle color="#6366f1" />}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div style={s.nav}>
               <button
@@ -477,8 +584,8 @@ const s = {
     background: "#f8fafc",
     zIndex: 9999,
     overflow: "hidden",
-    color: "#0f172a",
     fontFamily: "sans-serif",
+    color: "#0f172a",
   },
   loader: {
     height: "100vh",
@@ -487,7 +594,6 @@ const s = {
     alignItems: "center",
     fontSize: 20,
   },
-  // --- СТИЛИ ДЛЯ СТАРТОВОГО ЭКРАНА ---
   startCenter: {
     display: "flex",
     justifyContent: "center",
@@ -523,7 +629,6 @@ const s = {
     cursor: "pointer",
     transition: "transform 0.1s",
   },
-  // -----------------------------------
   layout: { display: "flex", flexDirection: "column", height: "100%" },
   progressBar: { height: 4, background: "#4f46e5", transition: "width 0.3s" },
   header: {
@@ -567,6 +672,20 @@ const s = {
   },
   qText: { fontSize: 24, fontWeight: "bold", marginBottom: 30 },
   ansGrid: { display: "grid", gap: 15 },
+  // 🔽 СТИЛЬ ПОЛЯ ВВОДА 🔽
+  textArea: {
+    width: "100%",
+    minHeight: "150px",
+    padding: "20px",
+    fontSize: "18px",
+    borderRadius: "16px",
+    border: "2px solid #e2e8f0",
+    outline: "none",
+    resize: "vertical",
+    fontFamily: "inherit",
+    transition: "border-color 0.2s",
+    backgroundColor: "#fff",
+  },
   card: {
     background: "white",
     border: "1px solid #e2e8f0",
